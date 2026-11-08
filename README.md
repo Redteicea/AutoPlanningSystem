@@ -35,7 +35,7 @@ cmake --build build -j
 
 ---
 
-## 它能做什么
+## 功能说明
 
 | 能力 | 说明 | 入口 |
 |---|---|---|
@@ -112,8 +112,3 @@ GA 2s 目标值 **6705（优化 29.4%）**，换型时间 2945→2015 分钟。
 - [docs/DESIGN.md](docs/DESIGN.md) —— 实现思路：建模、三层求解架构、解码器与顺序自愈、动态重排
 - [docs/ALGORITHMS.md](docs/ALGORITHMS.md) —— 算法细节：规则族、GA 编码与算子、目标函数
 - [docs/BENCHMARK.md](docs/BENCHMARK.md) —— 效率评测：数据、方法与结论
-
-## 边界（第一版明确不做）
-
-物料/MRP、MES 设备采集、多工厂、权限体系、订单拆批、L3 CP-SAT 精确解
-（接口已按 `IScheduler` 预留，见 DESIGN.md 中的路线图）。
