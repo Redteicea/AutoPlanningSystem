@@ -16,10 +16,10 @@
 //   GET  /api/export                 导出当前算例
 // ---------------------------------------------------------------------------
 //
-// 内容概要:
 //   - Api: 把各 REST 端点绑定到 HttpServer, 内部持有 Repository 引用
 //   - 公开: registerRoutes (注册全部路由)
 //   - 私有: 各端点的处理函数 (health/state/solve/reset/insert/breakdown/...)
+//
 #pragma once
 
 #include "aps/data/repository.hpp"

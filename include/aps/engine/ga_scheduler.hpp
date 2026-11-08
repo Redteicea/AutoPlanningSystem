@@ -28,7 +28,7 @@
 
 namespace aps {
 
-/// GA 参数 (都有默认值, 一般只调 population / islands)。
+/// @brief GA 参数 (都有默认值, 一般只调 population / islands)。
 struct GaConfig {
   int population = 40;        ///< 种群规模 (每岛); 大算例会自动降到 28~34
   int elite = 2;              ///< 精英保留数 (直接进入下一代, 保证单调不退化)
@@ -42,21 +42,19 @@ struct GaConfig {
   double localSearchRatio = 0.15;  ///< 时间预算里留给局部搜索的比例 [0, 0.4]
 };
 
-/// L2 遗传算法求解器。
+/// @brief L2 遗传算法求解器。
 class GaScheduler : public IScheduler {
  public:
   /// @return 求解器标签 ("ga"), 用于事件流水与结果追溯
   std::string name() const override { return "ga"; }
 
-  /// 按 SolveOptions 求解 (IScheduler 接口)。
-  /// 内部: 种群规模随工序数自适应 -> solveWith()。
+  /// @brief 按 SolveOptions 求解 (IScheduler 接口)。内部: 种群规模随工序数自适应 -> solveWith()。
   /// @param p   问题实例 (只读)
   /// @param opt 时间预算/随机种子/线程数等
   /// @return 最优解; 时间预算从"种子构造"到"局部搜索结束"全程受控
   Solution solve(const Problem& p, const SolveOptions& opt) override;
 
-  /// 完整参数版求解 (基准测试 / 调参入口)。
-  ///
+  /// @brief 完整参数版求解 (基准测试 / 调参入口)。
   /// @param p           问题实例 (只读)
   /// @param cfg         GA 参数
   /// @param timeLimitMs 总时间预算(毫秒), 含"规则解种子"构造时间, 会先扣再分给 GA 与局部搜索

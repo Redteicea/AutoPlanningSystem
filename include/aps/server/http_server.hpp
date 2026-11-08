@@ -1,18 +1,14 @@
 // ---------------------------------------------------------------------------
 // server/http_server.hpp -- 极简 HTTP/1.1 服务 + 线程池
 //
-// 为什么自己写:
-//   只要 REST + 静态文件, 引 cpp-httplib / Crow 会让"零依赖"的卖点消失,
-//   而且这个项目本来就要展示 C++ 网络/并发的基本功。核心约 300 行。
-//
-// 特性: 路由 (含 :param 路径参数) / 线程池 / 静态文件 / keep-alive: close。
+// 路由 (含 :param 路径参数) / 线程池 / 静态文件 / keep-alive: close。
 // 非目标: HTTPS / chunked / 文件上传 / WebSocket。
 // ---------------------------------------------------------------------------
 //
-// 内容概要:
 //   - HttpRequest: 一次请求 (方法/路径/query/body/头/路径参数/query参数)
 //   - HttpResponse: 一次响应 (状态码/Content-Type/body) + 便捷构造
 //   - HttpServer: 监听 + 线程池 + 路由表 + 静态目录服务
+//
 #pragma once
 
 #include <atomic>

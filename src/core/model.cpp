@@ -17,9 +17,9 @@ namespace aps {
 // Timeline
 // ---------------------------------------------------------------------------
 
-/// 编译日历规格为可用区间表。
-/// 流程: 逐天展开班次 (跨夜班 endHour+24) -> 裁剪到 [from,to] -> 排序合并
-///      -> 逐个扣除停机窗口 (一段被扣除后可能裂成两段)。
+/// @brief 编译日历规格为可用区间表。
+///        流程: 逐天展开班次 (跨夜班 endHour+24) -> 裁剪到 [from,to] -> 排序合并
+///          -> 逐个扣除停机窗口 (一段被扣除后可能裂成两段)。
 /// @param spec 日历规格
 /// @param from 编译起点
 /// @param to   编译终点 (开区间)
@@ -145,7 +145,7 @@ Seconds Timeline::rewind(Seconds t, Seconds dur) const {
   return kInf;
 }
 
-/// 计算 [a,b) 内实际可用秒数。只扫与区间相交的时段 (二分定位第一个相交段)。
+/// @brief 计算 [a,b) 内实际可用秒数。只扫与区间相交的时段 (二分定位第一个相交段)。
 Seconds Timeline::capacity(Seconds a, Seconds b) const {
   if (b <= a) return 0;
   // 只扫与 [a,b) 相交的时段: 第一个 second > a 的时段开始
@@ -166,7 +166,7 @@ Seconds Timeline::capacity(Seconds a, Seconds b) const {
 // SetupMatrix
 // ---------------------------------------------------------------------------
 
-/// 初始化换型族与方阵; 行列不足的部分用 defaultSec_ 补齐保证方阵。
+/// @brief 初始化换型族与方阵; 行列不足的部分用 defaultSec_ 补齐保证方阵。
 /// @param families 族名列表 (空 = 不建模换型)
 /// @param times    换型秒数方阵 times_[from][to]
 void SetupMatrix::init(const std::vector<std::string>& families,
@@ -180,7 +180,7 @@ void SetupMatrix::init(const std::vector<std::string>& families,
   times_.resize(families_.size(), std::vector<Seconds>(families_.size(), defaultSec_));
 }
 
-/// 把仍为 0 的矩阵项设为默认换型时间 (铺底; 显式设 0 的"同族 0"会被覆盖, 注意调用顺序)。
+/// @brief 把仍为 0 的矩阵项设为默认换型时间 (铺底; 显式设 0 的"同族 0"会被覆盖, 注意调用顺序)。
 void SetupMatrix::setDefault(Seconds sec) {
   defaultSec_ = sec;
   for (auto& row : times_)
@@ -188,13 +188,13 @@ void SetupMatrix::setDefault(Seconds sec) {
       if (v == 0) v = sec;
 }
 
-/// 族名 -> 索引 (哈希查询); 未注册返回 -1。
+/// @brief 族名 -> 索引 (哈希查询); 未注册返回 -1。
 int SetupMatrix::indexOf(const std::string& family) const {
   auto it = index_.find(family);
   return it == index_.end() ? -1 : it->second;
 }
 
-/// 查询换型时间; from/to 为 -1 (设备空闲/首次装夹) 时用同族时间近似; 越界返回 0。
+/// @brief 查询换型时间; from/to 为 -1 (设备空闲/首次装夹) 时用同族时间近似; 越界返回 0。
 Seconds SetupMatrix::get(int from, int to) const {
   if (times_.empty()) return 0;
   if (from < 0) from = to;  // 首次装夹: 用同族换型时间近似
@@ -208,21 +208,21 @@ Seconds SetupMatrix::get(int from, int to) const {
 // Problem
 // ---------------------------------------------------------------------------
 
-/// 按产品编码查工艺路线 (线性扫描, 路线数量少, 不是热路径)。
+/// @brief 按产品编码查工艺路线 (线性扫描, 路线数量少, 不是热路径)。
 const Routing* Problem::findRouting(const std::string& product) const {
   for (const auto& r : routings)
     if (r.product == product) return &r;
   return nullptr;
 }
 
-/// 按编码查设备下标; 未找到返回 -1。
+/// @brief 按编码查设备下标; 未找到返回 -1。
 int Problem::findMachine(const std::string& code) const {
   for (size_t i = 0; i < machines.size(); ++i)
     if (machines[i].code == code) return static_cast<int>(i);
   return -1;
 }
 
-/// 按订单号查下标; 未找到返回 -1。
+/// @brief 按订单号查下标; 未找到返回 -1。
 int Problem::findOrder(const std::string& code) const {
   for (size_t i = 0; i < orders.size(); ++i)
     if (orders[i].code == code) return static_cast<int>(i);
@@ -270,8 +270,8 @@ void Problem::rebuild() {
   }
 }
 
-/// 按厂级日历为每台设备生成 Timeline; 停机设备给空日历 (alignStart 直接 kInf)。
-/// extraDays 的缓冲保证"跨过 horizon 末尾的长工序"也能在扩展日历里落地。
+/// @brief 按厂级日历为每台设备生成 Timeline; 停机设备给空日历 (alignStart 直接 kInf)。
+/// @param extraDays 的缓冲保证"跨过 horizon 末尾的长工序"也能在扩展日历里落地。
 void Problem::buildCalendars(int extraDays) {
   Seconds to = horizonEnd + static_cast<Seconds>(extraDays) * 86400;
   for (auto& m : machines) {

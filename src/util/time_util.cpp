@@ -8,7 +8,8 @@ namespace aps {
 namespace timeutil {
 
 namespace {
-// 将 Unix 秒转本地日历分解 (tm); 跨平台兼容 localtime_s / localtime_r。
+  
+/// @brief 将 Unix 秒转本地日历分解 (tm); 跨平台兼容 localtime_s / localtime_r。
 std::tm localTm(Seconds t) {
   std::time_t tt = static_cast<std::time_t>(t);
   std::tm out{};
@@ -60,7 +61,7 @@ std::string format(Seconds t, bool withTime) {
   return buf;
 }
 
-// 解析时间字符串: 兼容纯数字时间戳与 "YYYY-MM-DD[ HH:MM]" 两种格式。
+/// @brief 解析时间字符串: 兼容纯数字时间戳与 "YYYY-MM-DD[ HH:MM]" 两种格式。
 Seconds parse(const std::string& s) {
   if (s.empty()) return -1;
   // 兼容纯数字时间戳
@@ -85,7 +86,7 @@ Seconds parse(const std::string& s) {
   return r < 0 ? -1 : r;
 }
 
-// 将时长 (秒) 转换为 "h+分钟"/"分钟"/"秒" 的可读串, 负数递归加前缀。
+/// @brief 将时长 (秒) 转换为 "h+分钟"/"分钟"/"秒" 的可读串, 负数递归加前缀。
 std::string humanDuration(Seconds dur) {
   if (dur < 0) return "-" + humanDuration(-dur);
   long long h = dur / 3600;

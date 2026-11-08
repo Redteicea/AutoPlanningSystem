@@ -18,14 +18,13 @@
 
 namespace aps {
 
-/// KPI 计算器。线程安全: 只读 Problem, 可多线程各持一份。
+/// @brief KPI 计算器。线程安全: 只读 Problem, 可多线程各持一份。
 class Metrics {
  public:
   /// @param p 问题实例 (只读引用, 提供权重/订单交期/设备日历等口径)
   explicit Metrics(const Problem& p) : p_(p) {}
 
-  /// 按安排表计算全部 KPI。
-  ///
+  /// @brief 按安排表计算全部 KPI。
   /// @param assign   工序 -> 安排, 下标即 op id
   /// @param detailed false=跳过利用率/设备负荷/在制峰值等展示型指标
   ///                 (GA 内循环每代要评几十个解, 这一项省 60%+ 时间);
@@ -33,12 +32,12 @@ class Metrics {
   /// @return         KPI 结构, objective 字段 = cost() 结果
   KPI compute(const std::vector<Assignment>& assign, bool detailed = true) const;
 
-  /// 按 Problem::weights 把 KPI 折算成单一目标值 (越小越好)。
+  /// @brief 按 Problem::weights 把 KPI 折算成单一目标值 (越小越好)。
   /// @param k 已算好的 KPI
   /// @return  目标函数值; 三项权重全为 0 时返回 0
   double cost(const KPI& k) const;
 
-  /// 便捷组合: compute + cost 一步完成, 并把结果写回 assign 对应的 KPI。
+  /// @brief 便捷组合: compute + cost 一步完成, 并把结果写回 assign 对应的 KPI。
   /// @param assign   工序安排表 (本函数不修改其内容, 只用非 const 引用是为了接口对称)
   /// @param detailed 是否算展示型指标
   /// @return         目标函数值

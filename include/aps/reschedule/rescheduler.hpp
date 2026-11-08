@@ -24,7 +24,7 @@
 
 namespace aps {
 
-/// 重排参数。
+/// @brief 重排参数。
 struct RescheduleOptions {
   Seconds now = 0;           ///< "当前时刻": start <= now 的工序视为已开工/冻结
   Seconds windowEnd = 0;     ///< 只重排这个时间窗内、且未开工的工序; 窗口外不碰
@@ -32,7 +32,7 @@ struct RescheduleOptions {
   std::uint64_t seed = 20261105;  ///< 随机种子 (局部搜索/打散用, 可复现)
 };
 
-/// 重排结果报告: 新解 + 漂移量化指标 (给前端/事件流水展示"动了多少")。
+/// @brief 重排结果报告: 新解 + 漂移量化指标 (给前端/事件流水展示"动了多少")。
 struct RescheduleReport {
   bool ok = false;          ///< 是否成功产出新解
   std::string message;      ///< 人读结论 (如 "设备 D2 停机, 迁移 5/5 道工序")
@@ -49,12 +49,11 @@ struct RescheduleReport {
   double explainMs = 0.0;        ///< 重排耗时 (毫秒)
 };
 
-/// 动态重排入口 (全部为静态方法, 无状态)。
+/// @brief 动态重排入口 (全部为静态方法, 无状态)。
 class Rescheduler {
  public:
-  /// 急单插队: 把新订单的工序追加进问题, 再沿原派工顺序局部插入。
-  /// 已开工工序不动; 只在未冻结时段里找空隙, 必要时局部顺延。
-  ///
+  /// @brief 急单插队: 把新订单的工序追加进问题, 再沿原派工顺序局部插入。
+  ///        已开工工序不动; 只在未冻结时段里找空隙, 必要时局部顺延。
   /// @param p        问题实例 (会写入新订单, 调用方需持有)
   /// @param baseline 当前生效的排产解 (冻结标记来自它的 assign)
   /// @param order    急单 (release/due/priority 已填好)
@@ -63,9 +62,8 @@ class Rescheduler {
   static RescheduleReport insertOrder(Problem& p, const Solution& baseline, const Order& order,
                                       const RescheduleOptions& opt);
 
-  /// 设备故障: 目标设备日历从 now 起整段清空 (不改工艺路线, 已开工工序仍合法),
-  /// 其上未开工的工序迁移到同组其他设备 + 连锁顺延。
-  ///
+  /// @brief 设备故障: 目标设备日历从 now 起整段清空 (不改工艺路线, 已开工工序仍合法),
+  ///        其上未开工的工序迁移到同组其他设备 + 连锁顺延。
   /// @param p          问题实例 (会写入停机标记, 调用方需持有)
   /// @param baseline   当前生效的排产解
   /// @param machineIdx 故障设备下标 (0..numMachines-1)
@@ -74,16 +72,14 @@ class Rescheduler {
   static RescheduleReport machineDown(Problem& p, const Solution& baseline, int machineIdx,
                                       const RescheduleOptions& opt);
 
-  /// 设备恢复上线: 重建该设备日历、清掉停机标记。
-  /// 注意: 只恢复能力, 不自动重排 —— 调用方应提示用户重新排产。
-  ///
+  /// @brief 设备恢复上线: 重建该设备日历、清掉停机标记。
+  ///        注意: 只恢复能力, 不自动重排 —— 调用方应提示用户重新排产。
   /// @param p          问题实例 (会被修改)
   /// @param machineIdx 恢复的设备下标
   static void machineUp(Problem& p, int machineIdx);
 
-  /// 滚动时域: 时间前进后把基线"搬"到新时间轴 ——
-  /// 已开工的冻结, 未开工的按原设备分配重新落到时间轴上 (从 now 或更晚起)。
-  ///
+  /// @brief 滚动时域: 时间前进后把基线"搬"到新时间轴 ——
+  ///        已开工的冻结, 未开工的按原设备分配重新落到时间轴上 (从 now 或更晚起)。
   /// @param p        问题实例 (只读使用)
   /// @param baseline 当前生效的排产解
   /// @param opt      重排参数

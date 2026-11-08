@@ -27,12 +27,14 @@ namespace {
 
 using Clock = std::chrono::steady_clock;
 
-/// 距计时起点的毫秒数。
+/// @brief 距计时起点的毫秒数。
+/// @param t0 
+/// @return 
 double msSince(Clock::time_point t0) {
   return std::chrono::duration<double, std::milli>(Clock::now() - t0).count();
 }
 
-/// 重排内部的占用记录 (对应 Assignment, 加上纯加工秒数)。
+/// @brief 重排内部的占用记录 (对应 Assignment, 加上纯加工秒数)。
 struct Occ {
   int op;         ///< 工序下标
   Seconds s;      ///< 加工开始
@@ -42,7 +44,7 @@ struct Occ {
   Seconds work;   ///< 纯加工产能秒数
 };
 
-/// 一次放置尝试的结果 (语义同 Decoder::Placement)。
+/// @brief 一次放置尝试的结果 (语义同 Decoder::Placement)。
 struct Place {
   bool ok = false;      ///< 是否找到可行位置
   int pos = -1;         ///< 插入位置 (队列下标)
@@ -53,8 +55,7 @@ struct Place {
   Seconds work = 0;     ///< 纯加工秒数
 };
 
-// 与 Decoder 完全一致的插入规则: 找第一个塞得下的位置
-/// 在指定设备的队列上找最早可行插入位置。
+/// @brief  与 Decoder 完全一致的插入规则: 找第一个塞得下的位置。在指定设备的队列上找最早可行插入位置。
 /// @param p          问题实例 (查换型矩阵与日历)
 /// @param machineIdx 目标设备
 /// @param q          该设备的占用队列 (按 s 升序)

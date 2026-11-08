@@ -15,6 +15,7 @@
 
 namespace aps {
 
+/// @brief 解选项
 struct SolveOptions {
   double timeLimitMs = 2000.0;  // 求解时间预算
   std::uint64_t seed = 20261105;
@@ -23,11 +24,13 @@ struct SolveOptions {
   bool detailedKpi = true;
 };
 
+/// @brief 求解器基类
 class IScheduler {
  public:
   virtual ~IScheduler() = default;
   virtual std::string name() const = 0;
-  // 返回的解一定结构完整 (每道工序都有 Assignment); 可行性用 validate() 单独校验
+
+  /// @brief 返回的解一定结构完整 (每道工序都有 Assignment); 可行性用 validate() 单独校验
   virtual Solution solve(const Problem& p, const SolveOptions& opt) = 0;
 };
 

@@ -1,16 +1,12 @@
 // ---------------------------------------------------------------------------
 // util/random.hpp -- 确定性随机数 (splitmix64)
-//
-// 为什么不用 std::mt19937:
-//   mt19937 构造慢、体积大; 排产 GA 需要"同一种子 = 同一结果"以便复现实验,
-//   splitmix64 足够快、实现 10 行、跨平台结果一致。
 // ---------------------------------------------------------------------------
 //
-// 内容概要:
 //   - Rng: 确定性伪随机数发生器 (splitmix64), 同种子必得同序列
 //   - nextU64/nextU32/nextDouble/nextInt: 各种区间采样
 //   - chance: 以概率 p 命中
 //   - shuffle/pick: 容器级随机洗牌与抽取 (用于 GA 变异/选择)
+//
 #pragma once
 
 #include <cstdint>
@@ -25,7 +21,6 @@ class Rng {
   explicit Rng(std::uint64_t seed = 0x9E3779B97F4A7C15ULL) : s_(seed ? seed : 1) {}
 
   /// 产生下一个 64 位随机整数 (splitmix64 三步混洗)。
-  ///
   /// @return  64 位无符号随机整数
   std::uint64_t nextU64() {
     s_ += 0x9E3779B97F4A7C15ULL;
@@ -44,7 +39,6 @@ class Rng {
 
   // [0, n)
   /// 产生 [0, n) 区间整数; n<=1 时恒返回 0。
-  ///
   /// @param n  上界 (不含)
   int nextInt(int n) {
     if (n <= 1) return 0;

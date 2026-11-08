@@ -13,10 +13,9 @@
 //   buildAssign=true  -> 用队列终态回填 Assignment + Metrics 全量 KPI (最终结果)
 //   buildAssign=false -> 快路径只算目标函数所需的量 (GA 内循环, 快 3~5 倍)
 // ===========================================================================
-#include "aps/engine/decoder.hpp"
-
 #include <algorithm>
 
+#include "aps/engine/decoder.hpp"
 #include "aps/kpi/metrics.hpp"
 
 namespace aps {

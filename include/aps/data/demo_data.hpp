@@ -22,6 +22,7 @@
 
 namespace aps {
 
+/// @brief 样例配置
 struct DemoConfig {
   int orderCount = 80;       // 订单数量
   int horizonDays = 14;      // 排产窗口天数
@@ -29,16 +30,14 @@ struct DemoConfig {
   bool twoShifts = false;    // true = 加夜班, 产能翻倍
 };
 
-/// 生成演示算例: 卡片印刷包装车间 (印刷→层压→冲切→写卡→检测→包装)。
-///
+/// @brief 生成演示算例: 卡片印刷包装车间 (印刷→层压→冲切→写卡→检测→包装)。
 /// @param cfg  订单数/窗口天数/种子/是否夜班
 /// @return     构造好的 Problem (含设备/换型矩阵/工艺/订单)
 Problem makeDemoFactory(const DemoConfig& cfg);
 
-// 合成算例: 用于规模-性能曲线 (不追求业务含义, 只压规模)
-//   orders 个订单 x opsPerOrder 道工序 x machines 台设备
-/// 生成纯规模压测算例 (确定性, 单产品多工序, 每序 1~3 台可选设备)。
-///
+/// @brief 合成算例: 用于规模-性能曲线 (不追求业务含义, 只压规模) 
+/// @brief orders 个订单 x opsPerOrder 道工序 x machines 台设备
+/// @brief 生成纯规模压测算例 (确定性, 单产品多工序, 每序 1~3 台可选设备)。
 /// @param orders       订单数
 /// @param opsPerOrder  每订单工序数
 /// @param machines     设备数

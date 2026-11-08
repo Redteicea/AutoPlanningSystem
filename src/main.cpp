@@ -5,17 +5,17 @@
 //   aps_server bench [--time 800] [--seed 1]
 //   aps_server solve [--algo ga] [--time 2000] [--orders 80]
 //
-// serve 是主业: 起 HTTP 服务 + 内置演示算例, 浏览器打开即用。
-// bench / solve 是命令行自测, 便于在 CI 或面试现场直接报数。
+// serve 是主业务: 起 HTTP 服务 + 内置演示算例, 浏览器打开即用。
+// bench / solve 是用于命令行自测
 // ---------------------------------------------------------------------------
 //
-// 内容概要:
 //   - argValue/hasFlag: 解析命令行参数
 //   - printKpi: 格式化打印一组 KPI
 //   - cmdServe: 启动 HTTP 服务 + 后台自动排产
 //   - cmdBench: 多档规模 rule vs ga 性能对比
 //   - cmdSolve: 对演示算例跑规则/GA 并打印 KPI 与校验
 //   - main: 按子命令分发
+//
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -38,21 +38,32 @@ using namespace aps;
 
 namespace {
 
-// 取 "--key value" 形式的参数值; 未找到返回 def。从 argv[2] 开始 (跳过程序名/子命令)。
+/// @brief 取 "--key value" 形式的参数值; 未找到返回 def。从 argv[2] 开始 (跳过程序名/子命令)。
+/// @param argc 
+/// @param argv 
+/// @param key 
+/// @param def 
+/// @return 
 std::string argValue(int argc, char** argv, const std::string& key, const std::string& def) {
   for (int i = 2; i + 1 < argc; ++i)
     if (key == argv[i]) return argv[i + 1];
   return def;
 }
 
-// 判断是否存在某个纯开关型参数 (如 --two-shifts); 从 argv[2] 起。
+/// @brief 判断是否存在某个纯开关型参数 (如 --two-shifts); 从 argv[2] 起。
+/// @param argc 
+/// @param argv 
+/// @param key 
+/// @return 
 bool hasFlag(int argc, char** argv, const std::string& key) {
   for (int i = 2; i < argc; ++i)
     if (key == argv[i]) return true;
   return false;
 }
 
-// 按固定格式打印一组关键 KPI (目标值/OTD/延期/换型/跨度/耗时/解码次数)。
+/// @brief 按固定格式打印一组关键 KPI (目标值/OTD/延期/换型/跨度/耗时/解码次数)。
+/// @param tag 
+/// @param s 
 void printKpi(const std::string& tag, const Solution& s) {
   const KPI& k = s.kpi;
   std::printf("%-10s obj=%9.2f  OTD=%5.1f%%  late=%3d/%3d  tard=%8.1fh  setup=%6.0fmin  makespan=%7.1fh  %8.1fms  evals=%lld\n",

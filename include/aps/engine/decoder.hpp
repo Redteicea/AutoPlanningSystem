@@ -27,14 +27,14 @@
 
 namespace aps {
 
-/// 插入式解码器。线程安全: 只读 Problem, 多线程 GA 各自持有一份实例。
+/// @brief 插入式解码器。线程安全: 只读 Problem, 多线程 GA 各自持有一份实例。
 class Decoder {
  public:
+  /// @brief 构造函数，必须显式构造
   /// @param p 问题实例 (只读引用, 生命周期必须覆盖解码器的使用期)
   explicit Decoder(const Problem& p) : p_(p) {}
 
-  /// 按 OS+MS 双段编码解码 (GA 主用)。
-  ///
+  /// @brief 按 OS+MS 双段编码解码 (GA 主用)。
   /// @param os               OS 编码: os[i] = 订单下标, 第 k 次出现 = 该订单第 k 道工序
   /// @param ms               MS 编码: ms[op] = 该工序使用 options 里的第几个设备;
   ///                         允许越界/负值 (内部会取模/取绝对值兜底)
@@ -46,8 +46,7 @@ class Decoder {
   Solution decodeOs(const std::vector<int>& os, const std::vector<int>& ms,
                     bool chooseBestMachine = false, bool buildAssign = true) const;
 
-  /// 按工序下标顺序直接解码 (规则法主用, 重排复放也走这里)。
-  ///
+  /// @brief 按工序下标顺序直接解码 (规则法主用, 重排复放也走这里)。
   /// @param opOrder          派工顺序: op 下标序列; 重复/越界项会被跳过,
   ///                         缺失项追加到末尾兜底, 任何输入都不丢工序
   /// @param ms               设备选择, 含义同 decodeOs; 空表 + chooseBestMachine=true
@@ -60,13 +59,13 @@ class Decoder {
                           bool chooseBestMachine, const std::string& tag,
                           bool buildAssign = true) const;
 
-  /// 把 OS 编码展开成完整工序顺序。
+  /// @brief 把 OS 编码展开成完整工序顺序。
   /// @param os 订单号序列 (可有重复/缺失/越界)
   /// @return op 下标序列: 每个订单按出现次数展开其工艺链; 缺失的工序按编号补到末尾,
   ///         保证任何 OS 都不丢工序 (GA 交叉变异后不需要修补)
   std::vector<int> expandOs(const std::vector<int>& os) const;
 
-  /// 一次放置的计算结果 (在指定设备上找到的最早可行位置)。
+  /// @brief 一次放置的计算结果 (在指定设备上找到的最早可行位置)。
   struct Placement {
     bool ok = false;      ///< 是否找到可行位置 (false = 该设备日历内排不下)
     int pos = -1;         ///< 插入到设备队列的下标 (队列按时间升序)

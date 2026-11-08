@@ -19,7 +19,7 @@
 
 namespace aps {
 
-/// 一道工序的最终安排: "哪台设备、哪个换型、什么时间干"。
+/// @brief 一道工序的最终安排: "哪台设备、哪个换型、什么时间干"。
 struct Assignment {
   int op = -1;        ///< Problem::ops 下标; -1 表示未安排的占位项
   int machine = -1;   ///< Problem::machines 下标; -1 表示未选设备
@@ -44,7 +44,7 @@ struct Assignment {
   Seconds work() const { return workSec > 0 ? workSec : end - start; }
 };
 
-/// 排产评价指标集合 (口径统一由 Metrics 计算, 求解器不自己算)。
+/// @brief 排产评价指标集合 (口径统一由 Metrics 计算, 求解器不自己算)。
 struct KPI {
   int ordersTotal = 0;   ///< 参与统计的订单总数
   int ordersOnTime = 0;  ///< 完工 <= 交期的订单数
@@ -71,7 +71,7 @@ struct KPI {
   long long evaluations = 0;  ///< 解码次数 (GA 评价个体数, 衡量搜索量)
 };
 
-/// 求解结果: 所有求解器 (规则/GA/重排) 的统一输出格式。
+/// @brief 求解结果: 所有求解器 (规则/GA/重排) 的统一输出格式。
 struct Solution {
   std::string solver = "none";  ///< 求解器标签: "rule:EDD" / "ga" / "reschedule:insert" 等
   std::vector<Assignment> assign;  ///< 工序安排表, 下标 = op id

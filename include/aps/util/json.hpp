@@ -1,19 +1,12 @@
 // ---------------------------------------------------------------------------
 // util/json.hpp -- 极简 JSON 库 (解析 + 序列化)
-//
-// 为什么不用第三方库:
-//   本项目定位是"可编译即跑"的作品集工程, 不希望使用者为了跑起来先装 vcpkg。
-//   需求单一 (REST 的请求/响应), 一个 300 行的实现比 1 个外部依赖更可控。
-//
-// 支持: object / array / string / number / bool / null, \uXXXX 转 UTF-8。
-// 不支持: 注释、NaN、超长数字精度(统一用 double, 整数出口走 int64 转换)。
 // ---------------------------------------------------------------------------
 //
-// 内容概要:
 //   - Value: 通用 JSON 值类型, 支持 object/array/string/number/bool/null 六型
 //   - 读取: as* 系列带默认值, 便于服务层直接取值而无需 try/catch
 //   - 路径: path("a.b[0].c") 链式定位, 不存在时返回静态 null 值
 //   - 序列化: dump(indent) 输出文本; 解析: parse() 走递归下降 Parser
+//
 #pragma once
 
 #include <cctype>
@@ -33,33 +26,35 @@ class Value {
  public:
   enum class Type { Null, Bool, Number, String, Array, Object };
 
-  /// 默认构造为 null 值。
+  /// @brief 默认构造为 null 值。
   Value() : type_(Type::Null) {}
-  /// 由 nullptr 构造为 null 值 (便于 Value v = nullptr 写法)。
+
+  /// @brief 由 nullptr 构造为 null 值 (便于 Value v = nullptr 写法)。
   Value(std::nullptr_t) : type_(Type::Null) {}
-  /// 由布尔值构造为 Bool 类型。
+
+  /// @brief 由布尔值构造为 Bool 类型。
   Value(bool v) : type_(Type::Bool), bool_(v) {}
 
-  // 整型统一走模板, 避免 int / long / long long / int64_t 之间重载歧义
-  /// 由任意整数类型构造为 Number 类型 (内部统一存为 double)。
+  /// @brief 整型统一走模板, 避免 int / long / long long / int64_t 之间重载歧义
+  ///        由任意整数类型构造为 Number 类型 (内部统一存为 double)。
   template <typename T,
             typename std::enable_if<std::is_integral<T>::value &&
                                         !std::is_same<T, bool>::value,
                                     int>::type = 0>
   Value(T v) : type_(Type::Number), num_(static_cast<double>(v)) {}
 
-  /// 由双精度浮点构造为 Number 类型。
+  /// @brief 由双精度浮点构造为 Number 类型。
   Value(double v) : type_(Type::Number), num_(v) {}
-  /// 由单精度浮点构造为 Number 类型 (升格为 double 存储)。
+  /// @brief 由单精度浮点构造为 Number 类型 (升格为 double 存储)。
   Value(float v) : type_(Type::Number), num_(static_cast<double>(v)) {}
-  /// 由 C 字符串构造为 String 类型。
+  /// @brief 由 C 字符串构造为 String 类型。
   Value(const char* s) : type_(Type::String), str_(s) {}
-  /// 由 std::string 构造为 String 类型 (移动语义, 不拷贝)。
+  /// @brief 由 std::string 构造为 String 类型 (移动语义, 不拷贝)。
   Value(std::string s) : type_(Type::String), str_(std::move(s)) {}
 
-  /// 创建空数组值 (type 置为 Array, 容器为空)。
+  /// @brief 创建空数组值 (type 置为 Array, 容器为空)。
   static Value array() { Value v; v.type_ = Type::Array; return v; }
-  /// 创建空对象值 (type 置为 Object, 容器为空)。
+  /// @brief 创建空对象值 (type 置为 Object, 容器为空)。
   static Value object() { Value v; v.type_ = Type::Object; return v; }
 
   /// 返回当前值的类型枚举。
@@ -77,16 +72,19 @@ class Value {
   /// 是否为布尔。
   bool isBool() const { return type_ == Type::Bool; }
 
-  // ---- 读取 (带默认值, 服务层不做 try/catch 地狱) ----
-  /// 读布尔; 类型不符时返回 def (默认 false)。
+  // ---- 读取 (带默认值, 服务层不做 try/catch 地狱) ----------------------------------------------
+  /// @brief 读布尔; 类型不符时返回 def (默认 false)。
   bool asBool(bool def = false) const { return type_ == Type::Bool ? bool_ : def; }
-  /// 读双精度; 类型不符时返回 def (默认 0.0)。
+  /// @brief 读双精度; 类型不符时返回 def (默认 0.0)。
   double asDouble(double def = 0.0) const { return type_ == Type::Number ? num_ : def; }
-  /// 读整数 (从 double 截断转换); 类型不符返回 def (默认 0)。
+  /// @brief 读整数 (从 double 截断转换); 类型不符返回 def (默认 0)。
   long long asInt(long long def = 0) const {
     return type_ == Type::Number ? static_cast<long long>(num_) : def;
   }
-  /// 读字符串; 类型不符时返回 def (默认空串)。
+
+  /// @brief 读字符串; 类型不符时返回 def (默认空串)。
+  /// @param def 
+  /// @return 
   std::string asString(const std::string& def = "") const {
     return type_ == Type::String ? str_ : def;
   }
@@ -132,7 +130,7 @@ class Value {
   /// 按点号/下标路径链式定位子值, 例如 "a.b[0].c"; 任一段缺失返回静态 null。
   const Value& path(const std::string& p) const;
 
-  // ---- 写入 ----
+  // ---- 写入 ----------------------------------------------
   /// 向数组追加一个元素 (非数组会自动转为数组并清空原有内容)。
   void push(Value v) {
     if (type_ != Type::Array) { type_ = Type::Array; arr_.clear(); }
@@ -144,11 +142,11 @@ class Value {
     obj_[k] = std::move(v);
   }
 
-  // ---- 序列化 ----
+  // ---- 序列化 ----------------------------------------------
   /// 将本值序列化为 JSON 文本; indent<0 时为紧凑格式, 否则按层级缩进。
   std::string dump(int indent = -1) const;
 
-  // ---- 解析 ----
+  // ---- 解析 ----------------------------------------------
   /// 解析整段 JSON 文本; 失败抛出 std::runtime_error (含出错位置)。
   static Value parse(const std::string& text);
 

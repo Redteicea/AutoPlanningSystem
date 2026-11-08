@@ -13,19 +13,17 @@
 #pragma once
 
 #include <vector>
-
 #include "aps/engine/ischeduler.hpp"
 
 namespace aps {
 
-/// L1 规则调度器: 分数最高/最优先的规则解, 也是 GA 的种子来源。
+/// @brief L1 规则调度器: 分数最高/最优先的规则解, 也是 GA 的种子来源。
 class RuleScheduler : public IScheduler {
  public:
   /// @return 求解器标签 ("rule")
   std::string name() const override { return "rule"; }
 
-  /// 按规则生成派工顺序并解码。
-  ///
+  /// @brief 按规则生成派工顺序并解码。
   /// @param p   问题实例 (只读)
   /// @param opt rule 字段:
   ///            - "AUTO" 或空: 七条规则 (EDD/SPT/WSPT/PRIORITY/FIFO/CR + 默认) 全跑,
@@ -34,8 +32,7 @@ class RuleScheduler : public IScheduler {
   /// @return   最优规则解; feasible=true 表示通过结构检查, 最终可行性仍以 validate() 为准
   Solution solve(const Problem& p, const SolveOptions& opt) override;
 
-  /// 生成单条规则的工序派工顺序 (不解码)。
-  ///
+  /// @brief 生成单条规则的工序派工顺序 (不解码)。
   /// @param p    问题实例 (只读)
   /// @param rule 规则名: "EDD" / "SPT" / "WSPT" / "PRIORITY" / "FIFO" / "CR";
   ///             其他值按 EDD 处理

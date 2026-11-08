@@ -88,7 +88,7 @@ class Timeline {
   /// @return    占用起点 (Unix 秒); 可用产能不足返回 kInf
   Seconds rewind(Seconds t, Seconds dur) const;
 
-  /// 计算区间内实际可用产能。
+  /// @brief 计算区间内实际可用产能。
   /// @param a 起点 (含)
   /// @param b 终点 (不含)
   /// @return  [a,b) 与可用时段的交集总秒数; b<=a 时为 0
@@ -98,7 +98,7 @@ class Timeline {
   const std::vector<std::pair<Seconds, Seconds>>& segments() const { return segs_; }
 
  private:
-  /// 可用区间表, 保证按 first 升序且互不重叠
+  /// @brief 可用区间表, 保证按 first 升序且互不重叠
   std::vector<std::pair<Seconds, Seconds>> segs_;
 };
 
@@ -142,13 +142,13 @@ class SetupMatrix {
 
 // ---- 主数据 --------------------------------------------------------------
 
-/// 工序的一个可选设备项: "这道工序可以在这台设备上做, 单件要这么久"。
+/// @brief 工序的一个可选设备项: "这道工序可以在这台设备上做, 单件要这么久"。
 struct MachineOption {
   int machine = 0;           ///< machines 数组下标
   double unitSeconds = 0.0;  ///< 单件工时(秒/件), 允许小数 (如 0.36 秒/张卡片)
 };
 
-/// 工艺路线里的一道工序定义 (模板, 排产时按订单展开成 OpInst)。
+/// @brief 工艺路线里的一道工序定义 (模板, 排产时按订单展开成 OpInst)。
 struct OperationDef {
   std::string code;    ///< 工序代码, 如 "PRINT"
   std::string name;    ///< 显示名, 如 "印刷"
@@ -156,13 +156,13 @@ struct OperationDef {
   std::vector<MachineOption> options;  ///< 可选设备组 (柔性所在, >=1 项)
 };
 
-/// 工艺路线: 一个产品从投料到完工的完整有序工序链。
+/// @brief 工艺路线: 一个产品从投料到完工的完整有序工序链。
 struct Routing {
   std::string product;                 ///< 产品编码 (订单通过它引用路线)
   std::vector<OperationDef> ops;       ///< 有序工序定义, seq 从 0 开始
 };
 
-/// 销售订单: 排产的需求侧输入。
+/// @brief 销售订单: 排产的需求侧输入。
 struct Order {
   std::string code;       ///< 订单号, 全局唯一 (如 "SO-1001")
   std::string product;    ///< 产品编码, 必须能找到对应 Routing
@@ -174,7 +174,7 @@ struct Order {
   std::string note;       ///< 备注 (自由文本)
 };
 
-/// 设备/工位。
+/// @brief 设备/工位。
 struct Machine {
   std::string code;  ///< 设备编码, 全局唯一 (如 "P1")
   std::string group; ///< 设备组 (如 PRINT/DIE), 故障迁移时在同组内找替身
@@ -185,8 +185,8 @@ struct Machine {
 
 // ---- 问题实例 ------------------------------------------------------------
 
-/// 待排工序实例 = 订单 x 工艺步骤 展开后的最小排产单元。
-/// Problem::ops 是扁平数组 (下标即 op id), 解码器只看它, 缓存友好。
+/// @brief 待排工序实例 = 订单 x 工艺步骤 展开后的最小排产单元。
+/// @brief Problem::ops 是扁平数组 (下标即 op id), 解码器只看它, 缓存友好。
 struct OpInst {
   int order = 0;   ///< 所属订单在 orders 里的下标
   int seq = 0;     ///< 工艺内序号 (0 开始), 与 orderOps[order] 的位置一致
@@ -197,18 +197,18 @@ struct OpInst {
   std::vector<MachineOption> options;  ///< 本订单可用的设备选项 (已过滤宕机设备)
 };
 
-/// 目标函数与惩罚的权重配置。
+/// @brief 目标函数与惩罚的权重配置。
 struct Weights {
   double tardiness = 10.0;  ///< 延期小时权重 (交期 > 换型 > 总工期)
   double setup = 3.0;       ///< 换型分钟权重
   double makespan = 1.0;    ///< 完工跨度小时权重
   double stability = 0.0;   ///< 重排时的计划漂移惩罚权重 (0 = 只报数不进目标)
-  /// 优先级(1..5) -> 延期权重放大系数; 下标 0 弃用
+  /// @brief 优先级(1..5) -> 延期权重放大系数; 下标 0 弃用
   double priorityWeight[6] = {0.0, 0.6, 0.8, 1.0, 1.4, 2.0};
 };
 
-/// 排产问题实例: 主数据 + 展开后的工序 + 日历 + 权重。
-/// 求解器只读它; 修改 orders/routings 后必须 rebuild(), 改日历/停机后必须 buildCalendars()。
+/// @brief 排产问题实例: 主数据 + 展开后的工序 + 日历 + 权重。
+///        求解器只读它; 修改 orders/routings 后必须 rebuild(), 改日历/停机后必须 buildCalendars()。
 struct Problem {
   std::string name;              ///< 算例名 (演示/导出时展示)
   std::vector<Order> orders;     ///< 订单列表
