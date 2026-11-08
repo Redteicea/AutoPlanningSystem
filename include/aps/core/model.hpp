@@ -33,7 +33,7 @@ struct Shift {
   int endHour = 16;
 };
 
-/// 厂级日历规格 (设备各自的最终可用区间由 Timeline::build 编译生成)。
+/// @brief 厂级日历规格 (设备各自的最终可用区间由 Timeline::build 编译生成)。
 struct CalendarSpec {
   /// 每周工作日, 0=周日 1=周一 ... 6=周六; 不在列表中的日子整日无产能
   std::vector<int> workdays{1, 2, 3, 4, 5};
@@ -43,18 +43,18 @@ struct CalendarSpec {
   std::vector<std::pair<Seconds, Seconds>> downtime;
 };
 
-/// 把"班次 + 工作日 + 停机"编译成一段段**有序不重叠**的可用区间 [first, second)。
+/// @brief 把"班次 + 工作日 + 停机"编译成一段段**有序不重叠**的可用区间 [first, second)。
 /// 之后所有时间推算 (对齐/前进/回退/容量) 都是二分查找 —— 解码器里没有日期运算,
 /// 只有区间游标, 这是排产能跑到千级工序的关键。
 class Timeline {
  public:
   Timeline() = default;
 
-  /// 直接用预编译好的区间构造 (要求有序不重叠, 一般只由 build() 调用)。
+  /// @brief 直接用预编译好的区间构造 (要求有序不重叠, 一般只由 build() 调用)。
   /// @param segs 可用区间列表, 语义为 [first, second) 左闭右开, 单位秒
   explicit Timeline(std::vector<std::pair<Seconds, Seconds>> segs) : segs_(std::move(segs)) {}
 
-  /// 把日历规格编译成 [from, to + extraDays) 范围内的可用区间表。
+  /// @brief 把日历规格编译成 [from, to + extraDays) 范围内的可用区间表。
   /// @param spec 班次/工作日/停机定义
   /// @param from 编译起点 (Unix 秒, 通常为 horizonStart 所在当天 0 点)
   /// @param to   编译终点 (Unix 秒, 开区间)
@@ -68,12 +68,12 @@ class Timeline {
   /// @return t 是否落在某个可用时段内部
   bool contains(Seconds t) const;
 
-  /// 对齐到可开工时刻。
+  /// @brief 对齐到可开工时刻。
   /// @param t 期望开工时刻
   /// @return t 在时段内则原样返回; 否则顺延到下一个时段的开头; 再无时段返回 kInf
   Seconds alignStart(Seconds t) const;
 
-  /// 从 t 起连续消耗 dur 秒**可用产能** (自动跨过休息时段), 返回完工时刻。
+  /// @brief 从 t 起连续消耗 dur 秒**可用产能** (自动跨过休息时段), 返回完工时刻。
   /// @param t   起点时刻 (不必在时段内, 会先对齐)
   /// @param dur 需要消耗的可用秒数 (换型+加工)
   /// @return    完工时刻 (Unix 秒); 产能不足以在 horizon 内完成返回 kInf
@@ -104,16 +104,16 @@ class Timeline {
 
 // ---- 换型矩阵 ------------------------------------------------------------
 
-/// 换型时间矩阵: (换型族A -> 换型族B) 的准备秒数, 对角线(同族)通常为 0。
+/// @brief 换型时间矩阵: (换型族A -> 换型族B) 的准备秒数, 对角线(同族)通常为 0。
 class SetupMatrix {
  public:
-  /// 初始化换型族与完整方阵。
+  /// @brief 初始化换型族与完整方阵。
   /// @param families 换型族名列表 (顺序即索引); 为空表示"不建模换型", get() 恒为 0
   /// @param times    n x n 矩阵; 不足的行/列会用 defaultSec_ 补齐
   void init(const std::vector<std::string>& families,
             const std::vector<std::vector<Seconds>>& times);
 
-  /// 把矩阵里仍为 0 的项设为默认换型时间 (通常在 init 后调用, 用于铺底)。
+  /// @brief 把矩阵里仍为 0 的项设为默认换型时间 (通常在 init 后调用, 用于铺底)。
   /// @param sec 默认换型秒数 (不同族之间的兜底值)
   void setDefault(Seconds sec);
 
