@@ -402,11 +402,19 @@ RescheduleReport Rescheduler::machineDown(Problem& p, const Solution& baseline, 
   // 1) 设备下线: 只把"从现在起"的日历挖空, 不动工艺路线。
   //    这样已开工(now 之前)的工序仍算合法占用, 不会被误判为"设备不支持";
   //    而未开工的活因为之后没有可用产能, 自然排不进去。
+  //    注意: 在制工序 (start <= now < end) 物理上还在加工, 必须让它做完这段,
+  //    所以挖空起点取 now 与所有在制工序完工时刻的较大者,
+  //    否则在制工序的尾巴落在挖空区里, 会被 V3 判成"落窗外"。
   p.machines[static_cast<size_t>(machineIdx)].down = true;
   {
+    Seconds blankFrom = std::max(opt.now, p.horizonStart);
+    for (const auto& a : base.assign) {
+      if (a.op < 0 || a.machine != machineIdx) continue;
+      if (a.start <= opt.now && a.end > blankFrom) blankFrom = a.end;
+    }
     CalendarSpec spec = p.calendar;
     const Seconds far = p.horizonEnd + 30 * 86400;
-    spec.downtime.push_back({std::max(opt.now, p.horizonStart), far});
+    spec.downtime.push_back({blankFrom, far});
     p.machines[static_cast<size_t>(machineIdx)].cal =
         Timeline::build(spec, p.horizonStart, far);
   }

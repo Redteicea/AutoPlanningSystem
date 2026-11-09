@@ -21,6 +21,7 @@ namespace aps {
 /// @brief KPI 计算器。线程安全: 只读 Problem, 可多线程各持一份。
 class Metrics {
  public:
+ 
   /// @param p 问题实例 (只读引用, 提供权重/订单交期/设备日历等口径)
   explicit Metrics(const Problem& p) : p_(p) {}
 

@@ -58,9 +58,14 @@ Problem makeDemoFactory(const DemoConfig& cfg) {
   p.horizonStart = today;
   p.horizonEnd = timeutil::addDays(today, cfg.horizonDays);
 
-  p.calendar.workdays = {1, 2, 3, 4, 5, 6};  // 周日休息
-  p.calendar.shifts = {{8, 12}, {13, 17}};
-  if (cfg.twoShifts) p.calendar.shifts = {{8, 12}, {13, 17}, {18, 22}};
+  // 日历来源二选一: 配置文件的自定义日历 (hasCalendar) > 内置默认 (周 日休两班, 可加夜班)
+  if (cfg.hasCalendar) {
+    p.calendar = cfg.calendar;
+  } else {
+    p.calendar.workdays = {1, 2, 3, 4, 5, 6};  // 周日休息
+    p.calendar.shifts = {{8, 12}, {13, 17}};
+    if (cfg.twoShifts) p.calendar.shifts = {{8, 12}, {13, 17}, {18, 22}};
+  }
 
   // ---- 设备 ----
   struct MDef {

@@ -448,6 +448,49 @@ function bindActions() {
     }));
   };
 
+  /** "8-12,13-17" 形式的班次串 -> [{start,end}]；非法格式抛错。 */
+  function parseShifts(text) {
+    const shifts = String(text || '').split(',').map((s) => s.trim()).filter(Boolean)
+      .map((s) => {
+        const m = s.match(/^(\d{1,2})\s*[-~]\s*(\d{1,2})$/);
+        if (!m) throw new Error(`班次格式不对："${s}"（应为 8-12 这种）`);
+        return { start: Number(m[1]), end: Number(m[2]) };
+      });
+    if (!shifts.length) throw new Error('至少要有一个班次');
+    return shifts;
+  }
+
+  $('btnConfig').onclick = async () => {
+    let cfg;
+    try {
+      cfg = await api('/api/config');          // GET: 读当前生效配置
+    } catch (e) {
+      toast('读取配置失败：' + e.message, true);
+      return;
+    }
+    const cal = cfg.calendar || {};
+    const demo = cfg.demo || {};
+    const shiftsText = (cal.shifts || []).map((s) => `${s.start}-${s.end}`).join(',');
+    openModal('通用配置（写入 config.json，立即生效）', [
+      { key: 'workdays', label: '工作日 (0=周日, 逗号分隔)', value: (cal.workdays || []).join(',') },
+      { key: 'shifts', label: '班次 (格式 8-12,13-17；22-6 表跨夜班)', value: shiftsText },
+      { key: 'orders', label: '订单数量', type: 'number', value: demo.orders ?? 80 },
+      { key: 'days', label: '排产天数', type: 'number', value: demo.days ?? 14 },
+    ], (d) => withBusy(null, '', async () => {
+      const workdays = String(d.workdays).split(',').map((s) => Number(s.trim())).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6);
+      const body = {
+        calendar: { workdays, shifts: parseShifts(d.shifts) },
+        demo: { orders: d.orders, days: d.days },
+      };
+      const r = await api('/api/config', body);   // POST: 校验+落盘+重建算例
+      await loadState();
+      await loadSchedule();
+      await loadEvents();
+      renderAll();
+      toast(`配置已写入 config.json 并重建算例（${r.summary?.orders ?? '?'} 订单），记得重新排产`);
+    }));
+  };
+
   $('btnInsert').onclick = () => {
     const products = productOptions();
     if (!products.length) { toast('没有可用工艺路线', true); return; }

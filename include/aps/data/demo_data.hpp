@@ -27,7 +27,9 @@ struct DemoConfig {
   int orderCount = 80;       // 订单数量
   int horizonDays = 14;      // 排产窗口天数
   std::uint64_t seed = 20261105; // 随机种子 (决定确定性算例)
-  bool twoShifts = false;    // true = 加夜班, 产能翻倍
+  bool twoShifts = false;    // true = 加夜班, 产能翻倍 (仅未提供自定义日历时生效)
+  bool hasCalendar = false;  // true = 用 calendar 覆盖内置默认日历 (来自配置文件)
+  CalendarSpec calendar;     // 自定义日历 (工作日/班次/停机), 仅 hasCalendar=true 时生效
 };
 
 /// @brief 生成演示算例: 卡片印刷包装车间 (印刷→层压→冲切→写卡→检测→包装)。

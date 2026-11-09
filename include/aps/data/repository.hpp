@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+#include "aps/data/demo_data.hpp"
 #include "aps/engine/types.hpp"
 #include "aps/util/json.hpp"
 
@@ -40,6 +41,10 @@ class Repository {
   /// @param seed         随机种子
   /// @param twoShifts    是否加夜班 (产能翻倍)
   void initDemo(int orderCount, int horizonDays, std::uint64_t seed, bool twoShifts);
+
+  /// @brief 重载: 直接用生成参数重建主数据 (可携带配置文件的自定义日历)。
+  /// @param cfg 生成参数 (orderCount/horizonDays 非法值按旧约定回退)
+  void initDemo(const DemoConfig& cfg);
 
   /// @brief 读写访问当前主数据 (调用方需持锁)。
   Problem& problem() { return problem_; }

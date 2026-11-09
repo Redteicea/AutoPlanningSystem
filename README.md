@@ -8,7 +8,7 @@
 
 - 语言：**C++17**，后端服务 + Web 前端（浏览器直接调用）
 - **零第三方依赖**：JSON / HTTP 服务 / 随机数 / 单元测试全部手写（仅 Windows 链接 ws2_32），克隆即编译
-- 单元测试 **91 项全过**，每个求解结果都过独立约束校验器（V1–V6）
+- 单元测试 **97 项全过**，每个求解结果都过独立约束校验器（V1–V6）
 
 ---
 
@@ -30,10 +30,34 @@ cmake --build build -j
 ```bash
 ./build/aps_server.exe solve --algo ga --time 2000   # 求解并打印 KPI
 ./build/aps_server.exe bench --time 800              # 规则法 vs GA 规模-性能对照表
-./build/aps_tests.exe                                # 跑 91 项单元测试
+./build/aps_tests.exe                                # 跑 97 项单元测试
 ```
 
 ---
+
+## 通用配置（config.json）
+
+工作日 / 班次 / 停机窗口、演示算例规模、求解默认值这些**通用配置**不再硬编码，
+统一放在 `config.json`（跟随工作目录，首次启动自动生成模板，`--config` 可改路径）：
+
+```json
+{
+  "calendar": {
+    "workdays": [1,2,3,4,5],                  // 0=周日 ... 6=周六
+    "shifts":   [ {"start":8,"end":12}, {"start":13,"end":17} ],   // 22-6 表跨夜班
+    "downtime": [ {"start":1790000000,"end":1790086400} ]          // 计划停机 (Unix 秒, 可选)
+  },
+  "demo":  { "orders": 80, "days": 14, "seed": 20261105 },
+  "solve": { "algo": "ga", "timeLimitMs": 2000 }
+}
+```
+
+三种修改方式（优先级从高到低）：
+1. **页面「日历配置」按钮**：校验 → 写入 config.json → 立即按新日历重建算例
+2. **直接编辑文件**后重启服务
+3. 命令行参数 `--orders/--days/--two-shifts`（只对当次启动生效，不回写文件）
+
+运行中也可用 `GET /api/config` 读取、`POST /api/config` 修改（POST 即落盘生效）。
 
 ## 功能说明
 
@@ -43,7 +67,8 @@ cmake --build build -j
 | 甘特图可视化 | 按设备分行，浅色段=换型准备，蓝竖线=当前时刻，悬停看工序明细 | 首页 |
 | KPI 看板 | OTD / 总延期 / 最大延期 / 完工跨度 / 换型次数与时长 / 平均负荷 / 峰值在制 / 目标值 | 首页 |
 | **急单插队** | 新建紧急订单插入已排计划：冻结已开工工序，只动未开工部分，报告漂移量 | 页面「插入急单」 |
-| **设备故障** | 设备立即停机，未开工工序自动迁移到同组设备并连锁顺延 | 页面「设备故障」 |
+| **设备故障** | 设备立即停机，未开工工序自动迁移到同组设备并连锁顺延（在制工序允许做完） | 页面「设备故障」 |
+| **通用配置** | 工作日/班次/停机、算例规模、求解预算集中到 config.json，页面可视化编辑 | 页面「日历配置」 |
 | 性能基准 | 页面一键跑 4 档规模的「规则 vs GA」对照表 | 页面「跑性能基准」 |
 | 数据导出 | `GET /api/export` 导出完整算例 JSON（订单/设备/工艺路线/换型矩阵） | — |
 
@@ -78,11 +103,12 @@ GA 2s 目标值 **6705（优化 29.4%）**，换型时间 2945→2015 分钟。
 │   │   └── validator.hpp     #   独立约束校验器 V1~V6
 │   ├── kpi/metrics.hpp       #   指标计算 (OTD/tardiness/makespan/换型/利用率/WIP)
 │   ├── reschedule/           #   动态重排: 插单/故障/恢复/滚动时域 (冻结+局部修复)
-│   ├── data/                 #   演示算例生成 + 内存仓储 (JSON 导入导出)
+│   ├── data/                 #   演示算例生成 + 通用配置读写 (app_config) + 内存仓储
 │   ├── server/               #   零依赖 HTTP 服务 (线程池) + REST API
 │   └── util/                 #   json.hpp / time_util.hpp / random.hpp (全手写)
 ├── src/                      # 实现, 目录结构与 include 镜像
-├── tests/test_main.cpp       # 91 项零依赖单元测试 (T1~T7 组)
+├── config.json               # 通用配置 (首次启动自动生成, 可手改)
+├── tests/test_main.cpp       # 97 项零依赖单元测试 (T1~T8 组)
 ├── web/                      # 前端: index.html + app.js + style.css (原生 JS, 无框架无 CDN)
 ├── docs/                     # 设计文档 / 算法说明 / 效率评测
 └── APS自动排产系统-项目简述.md  # 原始需求简述 (本项目的建模依据)
@@ -98,7 +124,9 @@ GA 2s 目标值 **6705（优化 29.4%）**，换型时间 2945→2015 分钟。
 | GET | `/api/state` | 算例摘要 + 全量问题数据 |
 | GET | `/api/schedule` | 当前排产结果（KPI + 订单 + 工序明细） |
 | POST | `/api/schedule` | 排产。`{"algo":"rule|ga|auto","timeLimitMs":2000,"seed":1}` |
-| POST | `/api/demo/reset` | 重建演示算例 `{"orders":80,"days":14,"seed":1}` |
+| POST | `/api/demo/reset` | 重建演示算例 `{"orders":80,"days":14,"seed":1}`（缺省取 config.json） |
+| GET | `/api/config` | 读通用配置（日历/算例规模/求解默认值） |
+| POST | `/api/config` | 改通用配置：校验 → 写入 config.json → 立即重建算例 |
 | POST | `/api/orders` | 追加普通订单 |
 | POST | `/api/reschedule/insert` | 急单插队 `{"code","product","qty","due"}` |
 | POST | `/api/reschedule/breakdown` | 设备故障 `{"machine":"D2"}` |

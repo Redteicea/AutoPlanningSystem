@@ -23,6 +23,7 @@
 #include <windows.h>
 #endif
 
+#include "aps/data/app_config.hpp"
 #include "aps/data/demo_data.hpp"
 #include "aps/engine/decoder.hpp"
 #include "aps/engine/ga_scheduler.hpp"
@@ -311,7 +312,77 @@ static void testBreakdown() {
               rep.stabilityCost);
 }
 
-// 测试入口: 依次运行 T1~T7, 打印通过/失败总数, 全过返回 0 否则 1。
+// T8: 通用配置 (AppConfig) 的 JSON 转换与文件读写。
+//     覆盖: 默认值 -> JSON -> 解析还原一致; 部分更新只覆盖出现的字段;
+//     非法值被拒绝; 真实文件 save 后 load 回来一致; toDemoConfig 让日历随配置走。
+static void testAppConfig() {
+  std::printf("-- T8 app_config\n");
+
+  // 默认值往返: JSON 化再解析, 字段一致
+  AppConfig def = defaultAppConfig();
+  AppConfig rt = def;
+  std::string err;
+  CHECK(appConfigFromJson(appConfigToJson(def), rt, err));
+  CHECK_EQ(rt.orderCount, def.orderCount);
+  CHECK_EQ(rt.horizonDays, def.horizonDays);
+  CHECK_EQ((int)rt.calendar.shifts.size(), (int)def.calendar.shifts.size());
+  CHECK_EQ(rt.calendar.shifts[0].startHour, 8);
+  CHECK_EQ(rt.calendar.shifts[1].endHour, 17);
+  CHECK_EQ((int)rt.calendar.workdays.size(), 5);
+
+  // 部分更新: 只传 calendar, demo/solve 沿用现值
+  AppConfig part = def;
+  part.orderCount = 123;
+  json::Value patch = json::Value::object();
+  json::Value cal = json::Value::object();
+  json::Value wd = json::Value::array();
+  wd.push(0); wd.push(6);                       // 周日 + 周六上班
+  cal.set("workdays", wd);
+  json::Value sh = json::Value::array();
+  json::Value s1 = json::Value::object(); s1.set("start", 22); s1.set("end", 6);  // 跨夜班
+  sh.push(s1);
+  cal.set("shifts", sh);
+  patch.set("calendar", cal);
+  CHECK(appConfigFromJson(patch, part, err));
+  CHECK_EQ((int)part.calendar.workdays.size(), 2);
+  CHECK_EQ(part.calendar.workdays[0], 0);
+  CHECK_EQ(part.calendar.shifts[0].startHour, 22);  // 跨夜班原样保留 (编译时展开)
+  CHECK_EQ(part.orderCount, 123);                   // 未出现的字段不动
+
+  // 非法值必须被拒绝, 且不改 out
+  AppConfig bad = def;
+  json::Value badV = json::parse("{\"calendar\":{\"workdays\":[]}}");
+  CHECK(!appConfigFromJson(badV, bad, err));
+  CHECK_EQ(bad.calendar.workdays.size(), def.calendar.workdays.size());
+  badV = json::parse("{\"solve\":{\"algo\":\"magic\"}}");
+  CHECK(!appConfigFromJson(badV, bad, err));
+  badV = json::parse("{\"calendar\":{\"shifts\":[{\"start\":25,\"end\":6}]}}");
+  CHECK(!appConfigFromJson(badV, bad, err));
+
+  // 真实文件: save 后 load 一致; 不存在的文件 err=="missing"
+  const std::string path = ".tmp_test_config.json";
+  AppConfig saved = def;
+  saved.calendar.workdays = {0, 2, 4};
+  saved.calendar.shifts = {{9, 18}};
+  saved.orderCount = 55;
+  CHECK(saveAppConfig(path, saved, err));
+  AppConfig loaded;
+  CHECK(loadAppConfig(path, loaded, err));
+  CHECK_EQ(loaded.orderCount, 55);
+  CHECK_EQ((int)loaded.calendar.workdays.size(), 3);
+  CHECK_EQ(loaded.calendar.shifts[0].startHour, 9);
+  AppConfig miss;
+  CHECK(!loadAppConfig("no_such_config_file_xyz.json", miss, err));
+  CHECK(err == "missing");
+  std::remove(path.c_str());
+
+  // toDemoConfig: 配置日历覆盖内置默认
+  Problem p = makeDemoFactory(toDemoConfig(loaded));
+  CHECK_EQ((int)p.calendar.shifts.size(), 1);
+  CHECK_EQ(p.calendar.shifts[0].startHour, 9);
+}
+
+// 测试入口: 依次运行 T1~T8, 打印通过/失败总数, 全过返回 0 否则 1。
 int main() {
 #ifdef _WIN32
   SetConsoleOutputCP(CP_UTF8);
@@ -324,6 +395,7 @@ int main() {
   testSolvers();
   testInsert();
   testBreakdown();
+  testAppConfig();
 
   std::printf("\n---- 结果: %d passed, %d failed ----\n", g_pass, g_fail);
   return g_fail == 0 ? 0 : 1;

@@ -25,7 +25,16 @@ void Repository::initDemo(int orderCount, int horizonDays, std::uint64_t seed, b
   cfg.horizonDays = horizonDays > 0 ? horizonDays : 14;
   cfg.seed = seed;
   cfg.twoShifts = twoShifts;
-  problem_ = makeDemoFactory(cfg);
+  initDemo(cfg);
+}
+
+// 真正的重建逻辑: 换主数据 + 清空旧结果/事件 + 记 init 事件。
+// 两个 initDemo 重载都汇到这里, 保证"重置后状态干净"只有一份实现。
+void Repository::initDemo(const DemoConfig& cfg) {
+  DemoConfig safe = cfg;
+  if (safe.orderCount <= 0) safe.orderCount = 80;
+  if (safe.horizonDays <= 0) safe.horizonDays = 14;
+  problem_ = makeDemoFactory(safe);
   latest_ = Solution{};
   events_.clear();
   lastAlgo_.clear();

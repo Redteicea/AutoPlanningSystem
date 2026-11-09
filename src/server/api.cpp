@@ -67,6 +67,8 @@ void Api::registerRoutes(HttpServer& srv) {
   srv.route("GET", "/api/schedule", [this](const HttpRequest& r) { return getSchedule(r); });
   srv.route("POST", "/api/schedule", [this](const HttpRequest& r) { return solve(r); });
   srv.route("POST", "/api/demo/reset", [this](const HttpRequest& r) { return resetDemo(r); });
+  srv.route("GET", "/api/config", [this](const HttpRequest& r) { return getConfig(r); });
+  srv.route("POST", "/api/config", [this](const HttpRequest& r) { return saveConfig(r); });
   srv.route("POST", "/api/orders", [this](const HttpRequest& r) { return addOrder(r); });
   srv.route("POST", "/api/reschedule/insert", [this](const HttpRequest& r) { return insertOrder(r); });
   srv.route("POST", "/api/reschedule/breakdown", [this](const HttpRequest& r) { return breakdown(r); });
@@ -181,18 +183,60 @@ HttpResponse Api::solve(const HttpRequest& req) {
 }
 
 // 按 orders/days/seed/twoShifts 重建演示算例 (加锁后 initDemo + bump)。
+// 注入通用配置 (main 里启动时 loadAppConfig 得到的) 与落盘路径。
+void Api::setAppConfig(const AppConfig& cfg, const std::string& path) {
+  appCfg_ = cfg;
+  configPath_ = path;
+}
+
+// 读通用配置: 直接返回当前生效配置的 JSON (前端"日历配置"弹窗的数据源)。
+HttpResponse Api::getConfig(const HttpRequest&) {
+  return HttpResponse::json(appConfigToJson(appCfg_).dump(2));
+}
+
+// 改通用配置: 解析 -> 校验 -> 落盘 -> 按新配置重建演示算例。
+// 先落盘再动内存: 万一写文件失败, 服务状态不被改掉, 前端拿到明确报错。
+HttpResponse Api::saveConfig(const HttpRequest& req) {
+  bool bodyOk = true;
+  json::Value body = parseBody(req, bodyOk);
+  if (!bodyOk) return errJson("请求体不是合法 JSON");
+
+  AppConfig next = appCfg_;  // 部分更新: 只覆盖 body 里出现的字段
+  std::string err;
+  if (!appConfigFromJson(body, next, err)) return errJson("配置非法: " + err);
+
+  std::string saveErr;
+  if (!saveAppConfig(configPath_, next, saveErr)) return errJson("配置保存失败: " + saveErr);
+
+  // 新日历要重新编译设备可用区间, 所以整表重建 (清空旧排产结果)
+  std::lock_guard<std::mutex> lk(repo_.mutex());
+  appCfg_ = next;
+  repo_.initDemo(toDemoConfig(next));
+  repo_.bump();
+  repo_.logEvent("init", "通用配置已更新并写入 " + configPath_);
+  json::Value v = json::Value::object();
+  v.set("ok", true);
+  v.set("config", appConfigToJson(appCfg_));
+  v.set("summary", repo_.summaryJson());
+  return HttpResponse::json(v.dump());
+}
+
+// 重建演示算例: 未传的字段取通用配置里的默认值; 日历始终来自配置
+// (旧接口的 twoShifts=true 仍兼容, 等价于在配置日历上叠一个 18-22 夜班)。
 HttpResponse Api::resetDemo(const HttpRequest& req) {
   bool bodyOk = true;
   json::Value body = parseBody(req, bodyOk);
   if (!bodyOk) return errJson("请求体不是合法 JSON");
 
-  const int orders = static_cast<int>(body["orders"].asInt(80));
-  const int days = static_cast<int>(body["days"].asInt(14));
-  const std::uint64_t seed = static_cast<std::uint64_t>(body["seed"].asInt(20261105));
-  const bool twoShifts = body["twoShifts"].asBool(false);
+  DemoConfig cfg = toDemoConfig(appCfg_);
+  cfg.orderCount = static_cast<int>(body["orders"].asInt(appCfg_.orderCount));
+  cfg.horizonDays = static_cast<int>(body["days"].asInt(appCfg_.horizonDays));
+  cfg.seed = static_cast<std::uint64_t>(body["seed"].asInt(static_cast<long long>(appCfg_.seed)));
+  if (body["twoShifts"].asBool(false))
+    cfg.calendar.shifts = {{8, 12}, {13, 17}, {18, 22}};
 
   std::lock_guard<std::mutex> lk(repo_.mutex());
-  repo_.initDemo(orders, days, seed, twoShifts);
+  repo_.initDemo(cfg);
   repo_.bump();
   json::Value v = json::Value::object();
   v.set("ok", true);
