@@ -1,49 +1,20 @@
 # ninja log v6
-450	3777	8156854481946091	CMakeFiles/aps_core.dir/src/data/demo_data.cpp.obj	d5911933b5b267ae
-430	2544	8156854992473047	CMakeFiles/aps_core.dir/src/core/model.cpp.obj	adf0f2f48a82102f
-504	2596	8156854482491495	CMakeFiles/aps_core.dir/src/kpi/metrics.cpp.obj	acfd9c3c353ff5a5
-48	259	8156855050203286	E:/3 CodeProject/13_AutoPlanningSystem/build/CMakeFiles/cmake.verify_globs	11fc51b635f8d4fa
-476	3489	8156854482214694	CMakeFiles/aps_core.dir/src/engine/ga_scheduler.cpp.obj	8cea8c76e4f93a05
-455	3622	8156854641499602	CMakeFiles/aps_core.dir/src/reschedule/rescheduler.cpp.obj	e3c98e7910646fc6
-479	1972	8156854641735709	CMakeFiles/aps_core.dir/src/util/time_util.cpp.obj	3f7189371ec0ae5a
-3813	5469	8156855026639449	aps_server.exe	bf1cc5a6d58df17b
-495	3032	8156854482397560	CMakeFiles/aps_core.dir/src/engine/validator.cpp.obj	78732a9fe3a18a75
-470	4733	8156854641649286	CMakeFiles/aps_core.dir/src/server/http_server.cpp.obj	12fc159b49d760cd
-2545	3813	8156855013822355	libaps_core.a	104cc34c77db452b
-3859	4860	8156855026756981	aps_tests.exe	1008737d1ada8013
-467	2807	8156854482112271	CMakeFiles/aps_core.dir/src/engine/decoder.cpp.obj	6dd27d8dcb0ce966
-486	2709	8156854482299768	CMakeFiles/aps_core.dir/src/engine/rule_scheduler.cpp.obj	5918e896b6dac0d9
-458	4520	8156854482022252	CMakeFiles/aps_core.dir/src/data/repository.cpp.obj	b92e7f7d8e4a621
-488	4522	8156854641831836	CMakeFiles/aps_server.dir/src/main.cpp.obj	7a52c22a32427427
-462	5196	8156854641573302	CMakeFiles/aps_core.dir/src/server/api.cpp.obj	aad2fd2df210ebd9
-498	4422	8156854641931857	CMakeFiles/aps_tests.dir/tests/test_main.cpp.obj	18fc4f7da677ba9a
-73	309	8158532048464860	E:/3 CodeProject/13_AutoPlanningSystem/build/CMakeFiles/cmake.verify_globs	a99c7f3755349b34
-555	3225	8158532053082221	CMakeFiles/aps_core.dir/src/engine/rule_scheduler.cpp.obj	5918e896b6dac0d9
 533	3382	8158532052869586	CMakeFiles/aps_core.dir/src/engine/decoder.cpp.obj	6dd27d8dcb0ce966
-476	4239	8158532052296405	CMakeFiles/aps_core.dir/src/core/model.cpp.obj	adf0f2f48a82102f
+4738	5866	8158534775143562	aps_tests.exe	1008737d1ada8013
 569	4396	8158532053220499	CMakeFiles/aps_core.dir/src/engine/validator.cpp.obj	78732a9fe3a18a75
-544	4730	8158532052977074	CMakeFiles/aps_core.dir/src/engine/ga_scheduler.cpp.obj	8cea8c76e4f93a05
-515	5093	8158532052685283	CMakeFiles/aps_core.dir/src/data/demo_data.cpp.obj	d5911933b5b267ae
-506	5464	8158532052590162	CMakeFiles/aps_core.dir/src/data/app_config.cpp.obj	1b02bd50d6f530a2
-40	263	8158532258448203	E:/3 CodeProject/13_AutoPlanningSystem/build/CMakeFiles/cmake.verify_globs	a99c7f3755349b34
 518	2715	8158532263022363	CMakeFiles/aps_core.dir/src/util/time_util.cpp.obj	3f7189371ec0ae5a
-470	3188	8158532262545867	CMakeFiles/aps_core.dir/src/kpi/metrics.cpp.obj	acfd9c3c353ff5a5
-480	4987	8158532262649911	CMakeFiles/aps_core.dir/src/reschedule/rescheduler.cpp.obj	e3c98e7910646fc6
-441	6605	8158532262258276	CMakeFiles/aps_core.dir/src/data/repository.cpp.obj	b92e7f7d8e4a621
+4692	6757	8158534774993423	aps_server.exe	6241ef1c3563b1d
+432	3280	8158534732080602	CMakeFiles/aps_core.dir/src/reschedule/rescheduler.cpp.obj	e3c98e7910646fc6
+506	5464	8158532052590162	CMakeFiles/aps_core.dir/src/data/app_config.cpp.obj	1b02bd50d6f530a2
+414	4651	8158533501667745	CMakeFiles/aps_tests.dir/tests/test_main.cpp.obj	18fc4f7da677ba9a
 494	7592	8158532262799366	CMakeFiles/aps_core.dir/src/server/api.cpp.obj	aad2fd2df210ebd9
 529	8946	8158532263147198	CMakeFiles/aps_server.dir/src/main.cpp.obj	7a52c22a32427427
+441	6605	8158532262258276	CMakeFiles/aps_core.dir/src/data/repository.cpp.obj	b92e7f7d8e4a621
+555	3225	8158532053082221	CMakeFiles/aps_core.dir/src/engine/rule_scheduler.cpp.obj	5918e896b6dac0d9
+515	5093	8158532052685283	CMakeFiles/aps_core.dir/src/data/demo_data.cpp.obj	d5911933b5b267ae
+476	4239	8158532052296405	CMakeFiles/aps_core.dir/src/core/model.cpp.obj	adf0f2f48a82102f
 506	9019	8158532262904884	CMakeFiles/aps_core.dir/src/server/http_server.cpp.obj	12fc159b49d760cd
-539	9243	8158532263237186	CMakeFiles/aps_tests.dir/tests/test_main.cpp.obj	18fc4f7da677ba9a
-9020	10860	8158532348046309	libaps_core.a	2fcbb81170a46c53
-10912	12110	8158532366965397	aps_tests.exe	1008737d1ada8013
-10860	12981	8158532366775602	aps_server.exe	6241ef1c3563b1d
-39	292	8158532396243661	E:/3 CodeProject/13_AutoPlanningSystem/build/CMakeFiles/cmake.verify_globs	a99c7f3755349b34
-25	242	8158533497978857	E:/3 CodeProject/13_AutoPlanningSystem/build/CMakeFiles/cmake.verify_globs	a99c7f3755349b34
-414	4651	8158533501667745	CMakeFiles/aps_tests.dir/tests/test_main.cpp.obj	18fc4f7da677ba9a
-4653	5820	8158533544263395	aps_tests.exe	1008737d1ada8013
-43	262	8158534728392903	E:/3 CodeProject/13_AutoPlanningSystem/build/CMakeFiles/cmake.verify_globs	a99c7f3755349b34
-432	3280	8158534732080602	CMakeFiles/aps_core.dir/src/reschedule/rescheduler.cpp.obj	e3c98e7910646fc6
 3283	4691	8158534760782874	libaps_core.a	2fcbb81170a46c53
-4738	5866	8158534775143562	aps_tests.exe	1008737d1ada8013
-4692	6757	8158534774993423	aps_server.exe	6241ef1c3563b1d
+470	3188	8158532262545867	CMakeFiles/aps_core.dir/src/kpi/metrics.cpp.obj	acfd9c3c353ff5a5
 40	255	8158535259905709	E:/3 CodeProject/13_AutoPlanningSystem/build/CMakeFiles/cmake.verify_globs	a99c7f3755349b34
+544	4730	8158532052977074	CMakeFiles/aps_core.dir/src/engine/ga_scheduler.cpp.obj	8cea8c76e4f93a05
