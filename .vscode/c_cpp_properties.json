@@ -1,0 +1,26 @@
+{
+  // VS Code C/C++ 插件 (cpptools) 配置。
+  // 关键: compileCommands 指向 CMake 导出的编译数据库, 这样 -I include / -D 宏
+  // 跟命令行编译完全一致, `#include "aps/..."` 不会再标红。
+  "configurations": [
+    {
+      "name": "Win32-MinGW",
+      "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+      "includePath": [
+        "${workspaceFolder}/include",
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/tests"
+      ],
+      "defines": [
+        "NOMINMAX",
+        "WIN32_LEAN_AND_MEAN",
+        "_WIN32_WINNT=0x0601"
+      ],
+      "compilerPath": "C:/Users/Holo/.workbuddy/tools/mingw64/bin/g++.exe",
+      "cStandard": "c17",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "windows-gcc-x64"
+    }
+  ],
+  "version": 4
+}

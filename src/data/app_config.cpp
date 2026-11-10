@@ -183,8 +183,8 @@ DemoConfig toDemoConfig(const AppConfig& cfg) {
   d.horizonDays = cfg.horizonDays;
   d.seed = cfg.seed;
   d.twoShifts = false;       // 日历完全由配置决定, 不再用"加夜班"开关
-  // d.hasCalendar = true;
-  // d.calendar = cfg.calendar;
+  d.hasCalendar = true;      // 必须为 true: 否则配置里的班次/工作日到不了算例 (T8 会失败)
+  d.calendar = cfg.calendar;
   return d;
 }
 

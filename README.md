@@ -14,23 +14,59 @@
 
 ## 快速开始
 
-```bash
-# 1. 编译 (MinGW / MSVC 均可, 纯 C++17)
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
+### 编译（Windows）
 
-# 2. 启动服务 (默认内置 80 单 / 467 工序 / 14 设备的卡片印刷车间演示算例)
+本机**不需要 make / nmake**，构建器是 **Ninja**（随 MinGW-w64 工具链一起提供）。
+CMake 在 Windows 上不指定生成器时会默认选 **NMake Makefiles**，那要求装过 Visual Studio，否则会报
+`Running 'nmake' '-?' failed`——这是本项目唯一的构建坑。
+
+项目已内置 `CMakePresets.json`，把生成器和编译器路径都写好了，**两条命令搞定**：
+
+```bash
+# 1. 配置 (首次或有 CMakeLists 改动时执行)
+cmake --preset windows-release
+
+# 2. 编译
+cmake --build --preset windows-release
+```
+
+> 预设已固定：`-G Ninja`、`g++.exe` 绝对路径、`CMAKE_BUILD_TYPE=Release`、导出 `compile_commands.json`。
+> 换机器 / 换工具链目录时，改 `CMakePresets.json` 里 `windows-release` 的三条路径即可；
+> 若环境 PATH 里已有 g++ 和 ninja，改用 `--preset portable`（不写死任何路径，Linux 也能用）。
+> 想要带符号可断点的版本：`cmake --preset windows-debug && cmake --build --preset windows-debug`（输出到 `build-debug/`）。
+
+### 不用预设的手写等价命令
+
+```bash
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_MAKE_PROGRAM=C:/Users/Holo/.workbuddy/tools/mingw64/bin/ninja.exe \
+  -DCMAKE_CXX_COMPILER=C:/Users/Holo/.workbuddy/tools/mingw64/bin/g++.exe
+cmake --build build -j 8
+```
+
+**注意**：`build/` 一旦用某个生成器配置好，生成器就写死在 `CMakeCache.txt` 里了。
+想换生成器必须先删掉整个 `build/` 目录（或用 `cmake --preset windows-release --fresh` 强制重配）。
+
+### 启动
+
+```bash
+# 启动服务 (默认内置 80 单 / 467 工序 / 14 设备的卡片印刷车间演示算例)
 ./build/aps_server.exe serve --port 8080
 
-# 3. 浏览器打开 http://localhost:8080  —— 启动时已自动排好一版
+# 浏览器打开 http://localhost:8080  —— 启动时已自动排好一版
 ```
+
+> **VS Code 用户**：直接「打开文件夹」到项目根目录即可。项目自带 `.vscode/c_cpp_properties.json`，
+> CMake 也已导出 `build/compile_commands.json`（`-I include` + `NOMINMAX` 等宏与命令行完全一致），
+> 不会出现 `#include "aps/..."` 满屏报红。若仍有波浪线，执行一次 “C/C++: Reset IntelliSense Database”
+> 或重新加载窗口。构建任务：`Ctrl+Shift+B`；另有「configure」/「干净重配」/「跑测试」/「起服务」四个任务。
 
 命令行工具（不启服务也能自测）：
 
 ```bash
 ./build/aps_server.exe solve --algo ga --time 2000   # 求解并打印 KPI
 ./build/aps_server.exe bench --time 800              # 规则法 vs GA 规模-性能对照表
-./build/aps_tests.exe                                # 跑 97 项单元测试
+./build/aps_tests.exe                                # 跑 116 项单元测试
 ```
 
 ---

@@ -4,12 +4,26 @@ project(aps LANGUAGES CXX)
 # ---------------------------------------------------------------------------
 # APS 自动排产系统
 #   目标: Windows / Linux 双平台, 零第三方依赖 (仅 C++17 标准库 + Winsock)
-#   构建: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+#
+#   构建 (推荐, 用项目自带的 CMakePresets.json):
+#     cmake --preset windows-release
+#     cmake --build --preset windows-release
+#
+#   Windows 上必须显式 -G Ninja: CMake 默认会选 NMake Makefiles, 而 nmake 只有
+#   装了 Visual Studio 才有; 本项目用 MinGW-w64 + Ninja, 不依赖 make / nmake。
+#     等价手写命令:
+#     cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+#           -DCMAKE_CXX_COMPILER=<mingw>/bin/g++.exe -DCMAKE_MAKE_PROGRAM=<mingw>/bin/ninja.exe
+#     cmake --build build -j 8
 # ---------------------------------------------------------------------------
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# 导出 compile_commands.json: VS Code (C/C++ 插件) 靠它拿到 -I / -D, 否则
+# #include "aps/..." 在编辑器里全部标红 (命令行编译其实是好的)。
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)

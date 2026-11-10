@@ -1,0 +1,42 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build (Release)",
+      "type": "shell",
+      "command": "cmake --build --preset windows-release",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "configure (preset: Ninja + MinGW)",
+      "type": "shell",
+      "command": "cmake --preset windows-release",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "configure + build (干净重配)",
+      "type": "shell",
+      "command": "cmake --preset windows-release --fresh && cmake --build --preset windows-release",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "run tests",
+      "type": "shell",
+      "command": "./build/aps_tests.exe",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "serve (http://localhost:8080)",
+      "type": "shell",
+      "command": "./build/aps_server.exe serve --port 8080",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    }
+  ]
+}
