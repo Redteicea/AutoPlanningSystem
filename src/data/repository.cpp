@@ -18,7 +18,12 @@
 
 namespace aps {
 
-// 用演示工厂重建主数据, 并清空旧结果与事件、记录 init 事件。
+/// @brief 用参数重建演示主数据 (便捷重载, 内部构造 DemoConfig 后转调下面的实现)。
+///
+/// @param orderCount  订单数; <=0 时回退 80
+/// @param horizonDays 排产窗口天数; <=0 时回退 14
+/// @param seed        随机种子, 决定订单的数量/交期/急单分布
+/// @param twoShifts   true=加夜班 (8-12 / 13-17 / 18-22 三班), 作为自定义日历的替代
 void Repository::initDemo(int orderCount, int horizonDays, std::uint64_t seed, bool twoShifts) {
   DemoConfig cfg;
   cfg.orderCount = orderCount > 0 ? orderCount : 80;
@@ -28,8 +33,13 @@ void Repository::initDemo(int orderCount, int horizonDays, std::uint64_t seed, b
   initDemo(cfg);
 }
 
-// 真正的重建逻辑: 换主数据 + 清空旧结果/事件 + 记 init 事件。
-// 两个 initDemo 重载都汇到这里, 保证"重置后状态干净"只有一份实现。
+/// @brief 用 DemoConfig 重建演示主数据（真正的重置实现）。
+///
+/// 规整参数（orderCount/horizonDays <=0 回退 80/14）后调用 makeDemoFactory 换主数据，
+/// 并清空 latest_/events_/lastAlgo_/lastSolveAt_，最后记一条 init 事件。两个 initDemo
+/// 重载都汇聚于此，保证"重置后状态干净"只有一份实现。
+///
+/// @param cfg  演示算例生成参数（订单数/窗口天数/种子/夜班/自定义日历）
 void Repository::initDemo(const DemoConfig& cfg) {
   DemoConfig safe = cfg;
   if (safe.orderCount <= 0) safe.orderCount = 80;
@@ -44,14 +54,24 @@ void Repository::initDemo(const DemoConfig& cfg) {
                        std::to_string(problem_.numMachines()) + " 设备");
 }
 
-// 写回排产结果, 记录算法名与写回时刻 (服务端时间)。
+/// @brief 写回最新排产结果, 同时记录产出算法与写回时刻。
+///
+/// 时刻取服务端当前时间 (timeutil::now()), 前端据此显示"结果有多新"。
+///
+/// @param s    排产结果, 移动语义接管 (调用后实参被置空)
+/// @param algo 产出该结果的算法标识 ("rule:EDD" / "ga" 等), 只用于展示
 void Repository::setLatest(Solution s, const std::string& algo) {
   latest_ = std::move(s);
   lastAlgo_ = algo;
   lastSolveAt_ = timeutil::now();
 }
 
-// 追加一条事件; 超过 200 条时删除最旧 100 条, 控制内存占用。
+/// @brief 向事件流追加一条事件；超过 200 条时删除最旧 100 条以控内存。
+///
+/// 事件 at 取服务端当前时间。events_ 超过 200 条后，从头删除 100 条。
+///
+/// @param type    事件类型（如 "init"、"solve"）
+/// @param detail  事件详情文本
 void Repository::logEvent(const std::string& type, const std::string& detail) {
   Event e;
   e.at = timeutil::now();
@@ -61,11 +81,13 @@ void Repository::logEvent(const std::string& type, const std::string& detail) {
   if (events_.size() > 200) events_.erase(events_.begin(), events_.begin() + 100);
 }
 
-// ---------------------------------------------------------------------------
-// Problem -> JSON
-// ---------------------------------------------------------------------------
-// 将 Problem 全部主数据序列化为 JSON: 时间窗/订单/设备/工艺(含换型选项)/
-// 换型族/统计。供 /api/state 与导出使用。
+/// @brief 把 Problem 的全部主数据序列化成 JSON (供 /api/state 与算例导出使用)。
+///
+/// 包含: 时间窗 (含可读文本)、订单 (含产品/数量/交期/优先级/急单标记)、设备 (含状态)、
+/// 工艺路线 (含每道工序的候选设备与单件工时)、换型矩阵、以及规模统计。
+///
+/// @param p 待序列化的算例
+/// @return  JSON 对象; 结构见 web/app.js 里读取的字段
 json::Value problemToJson(const Problem& p) {
   json::Value v = json::Value::object();
   v.set("name", p.name);
@@ -149,14 +171,16 @@ json::Value problemToJson(const Problem& p) {
   return v;
 }
 
-// 从 JSON 反序列化 Problem: 校验为对象后依次读设备/工艺/订单, 建立 code->下标
-// 映射; 导入时按 family 名重建换型矩阵 (跨族默认 30 分钟, 同族 0); 空主数据
-// 报错。成功后 rebuild + buildCalendars。
-//
-// @param v    输入 JSON 对象
-// @param p    输出 Problem (仅成功时赋值)
-// @param err  失败原因 (输出)
-// @return     成功 true
+/// @brief 从 JSON 反序列化 Problem（导入时按 family 重建换型矩阵）。
+///
+/// 校验为对象后依次读设备/工艺/订单，建立 code->下标映射；导入时按 family 名重建换型
+/// 矩阵（跨族默认 30 分钟、同族 0），原矩阵不导出以简化格式。订单/设备/工艺任一为空则
+/// 报错。成功后 rebuild + buildCalendars。
+///
+/// @param v    输入 JSON 对象（须含 machines/routings/orders 等）
+/// @param p    输出 Problem（仅成功时赋值）
+/// @param err  失败原因（输出），如字段缺失或主数据为空
+/// @return     true=导入成功并写回 p；false=失败（err 含原因，p 不变）
 bool problemFromJson(const json::Value& v, Problem& p, std::string& err) {
   if (!v.isObject()) {
     err = "problem 必须是对象";
@@ -244,12 +268,19 @@ bool problemFromJson(const json::Value& v, Problem& p, std::string& err) {
   return true;
 }
 
-// ---------------------------------------------------------------------------
-// Solution -> JSON
-// ---------------------------------------------------------------------------
+// ---- Problem / Solution 的 JSON 视图 ----
+
+/// @brief 主数据的 JSON 视图 (转调 problemToJson, 让调用方不必拿锁去碰 problem_)。
+///
+/// @return Problem 的完整 JSON 表示
 json::Value Repository::problemJson() const { return problemToJson(problem_); }
 
-// 服务端摘要: 当前时间/名称/数量统计/是否已求解/最近算法与写回时刻。
+/// @brief 生成服务端摘要 JSON（状态概览，不含排产明细）。
+///
+/// 含当前服务端时间、问题名、订单/工序/设备数、是否已求解（latest_.assign 非空）、
+/// 最近算法名与写回时刻。
+///
+/// @return  含 serverTime/problemName/orders/ops/machines/solved/lastAlgo/lastSolveAt 的对象
 json::Value Repository::summaryJson() const {
   json::Value j = json::Value::object();
   j.set("serverTime", timeutil::now());
@@ -263,11 +294,13 @@ json::Value Repository::summaryJson() const {
   return j;
 }
 
-// 排产结果序列化: 算法/可行性/KPI/设备负荷/订单汇总, 可选展开工序级 tasks。
-// 未求解时仅返回 solved=false。
-//
-// @param includeTasks  是否包含每道工序明细 (tasks)
-// @return              结果 JSON
+/// @brief 排产结果的 JSON 视图 (算法 / 可行性 / KPI / 设备负荷 / 订单汇总, 可选工序明细)。
+///
+/// 未求解 (assign 为空) 时只返回 {"solved":false}, 前端据此显示"还没排产"。
+///
+/// @param includeTasks true=附带工序级 tasks 数组 (甘特图用, 80 单约 467 条, 不传则省流量);
+///                     false=只返回汇总与 KPI
+/// @return             结果 JSON
 json::Value Repository::solutionJson(bool includeTasks) const {
   json::Value j = json::Value::object();
   j.set("solved", !latest_.assign.empty());
@@ -367,7 +400,9 @@ json::Value Repository::solutionJson(bool includeTasks) const {
   return j;
 }
 
-// 事件流序列化: 每条含 at/atText/type/detail。
+/// @brief 事件流的 JSON 数组视图 (最近 200 条, 供前端"事件流水"面板展示)。
+///
+/// @return JSON 数组, 每个元素含 at (Unix 秒) / atText (可读时间) / type / detail
 json::Value Repository::eventsJson() const {
   json::Value arr = json::Value::array();
   for (const auto& e : events_) {

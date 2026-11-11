@@ -26,8 +26,8 @@ namespace aps {
 
 // ---- 日历 ----------------------------------------------------------------
 
-/// 一个班次: 从 startHour 点到 endHour 点 (24 小时制)。
-/// endHour <= startHour 表示跨夜班 (如 22 -> 6), 编译 Timeline 时会自动 +24h。
+/// @brief 一个班次: 从 startHour 点到 endHour 点 (24 小时制)。
+///        endHour <= startHour 表示跨夜班 (如 22 -> 6), 编译 Timeline 时会自动 +24h。
 struct Shift {
   int startHour = 8;
   int endHour = 16;

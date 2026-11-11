@@ -26,8 +26,8 @@ class RuleScheduler : public IScheduler {
   /// @brief 按规则生成派工顺序并解码。
   /// @param p   问题实例 (只读)
   /// @param opt rule 字段:
-  ///            - "AUTO" 或空: 七条规则 (EDD/SPT/WSPT/PRIORITY/FIFO/CR + 默认) 全跑,
-  ///              取目标函数最优的解 (代价 = 7 次解码)
+  ///            - "AUTO" 或空: 六条规则 (EDD/SPT/WSPT/PRIORITY/FIFO/CR) 全跑,
+  ///              取目标函数最优的解 (代价 = 6 次解码)
   ///            - 单条规则名: 只跑该规则
   /// @return   最优规则解; feasible=true 表示通过结构检查, 最终可行性仍以 validate() 为准
   Solution solve(const Problem& p, const SolveOptions& opt) override;

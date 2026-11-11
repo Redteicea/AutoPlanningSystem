@@ -412,6 +412,7 @@ HttpResponse Api::benchmark(const HttpRequest& req) {
   const double tLimit = std::min(20000.0, std::max(100.0, body["timeLimitMs"].asDouble(800.0)));
   const std::uint64_t seed = static_cast<std::uint64_t>(body["seed"].asInt(20261105));
 
+  /// @brief 一档评测规模: 订单数 / 每单工序数 / 设备数 (sweep=true 时用内置梯度, 否则用请求体单点)。
   struct Case {
     int orders, ops, machines;
   };

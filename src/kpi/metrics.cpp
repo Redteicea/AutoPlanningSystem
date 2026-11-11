@@ -14,7 +14,21 @@
 
 namespace aps {
 
-/// 计算全部 KPI (口径见头文件)。未排完的订单按窗口末端保守估计延期。
+/// @brief 计算全部 KPI (口径见头文件), 是目标函数与前端看板的数据来源。
+///
+/// 分两段执行:
+///   - 基础段 (必算): 完工时间/OTD/延期、换型次数与总时长、makespan —— 这些是目标函数
+///     的全部输入, 再怎么省也不能省;
+///   - 展示段 (detailed=true 才算): 设备利用率 (占用 / 可用窗口到 makespan)、
+///     在制峰值 WIP (开工 +1 / 完工 -1 的扫描线, 同一时刻先减后加)。
+///
+/// 未排完的订单按窗口末端 (horizonEnd) 保守估计完工时间, 所以缺工序的订单会被判延期,
+/// 不会出现"没排反而准时"的假象。
+///
+/// @param assign   工序安排表 (下标 = op id); 未排的项 op<0 会被跳过
+/// @param detailed true=补算设备利用率与 WIP 峰值 (只在最终结果上跑);
+///                 false=只算目标函数所需量 (GA 内循环, 明显更快)
+/// @return         KPI 汇总; objective 已按 Problem::weights 加权算好
 KPI Metrics::compute(const std::vector<Assignment>& assign, bool detailed) const {
   KPI k;
   const int nOrders = p_.numOrders();
@@ -124,7 +138,12 @@ KPI Metrics::compute(const std::vector<Assignment>& assign, bool detailed) const
   return k;
 }
 
-/// 目标函数 = 延期 x w_t + 换型分钟 x w_s + makespan小时 x w_m (权重来自 Problem::weights)。
+/// @brief 计算加权目标函数值: 延期权重 + 换型分钟权重 + makespan小时权重。
+///
+/// 权重来自 Problem::weights; 输入 k 须已填好 weightedTardinessHours/setupSec/makespanSpan。
+///
+/// @param k 已计算的 KPI (需含加权延期小时、换型秒、makespan 跨度)
+/// @return  目标函数值 (越小越优)
 double Metrics::cost(const KPI& k) const {
   const Weights& w = p_.weights;
   double c = 0.0;
@@ -134,7 +153,11 @@ double Metrics::cost(const KPI& k) const {
   return c;
 }
 
-/// 便捷组合: compute + cost (结果已在 k.objective 里, 直接返回)。
+/// @brief 便捷组合: 计算 KPI 并直接返回目标函数值 (compute + cost 一步完成)。
+///
+/// @param assign   工序安排表 (下标 = op id)
+/// @param detailed 是否补算展示段 KPI
+/// @return         目标函数值 (即 k.objective)
 double Metrics::costOf(std::vector<Assignment>& assign, bool detailed) const {
   KPI k = compute(assign, detailed);
   (void)k;

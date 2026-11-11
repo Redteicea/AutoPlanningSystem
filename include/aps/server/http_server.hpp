@@ -94,8 +94,14 @@ struct HttpResponse {
   }
 };
 
+/// @brief 极简 HTTP/1.1 服务器: 监听 + 线程池 + 路由表 + 静态文件服务。
+///
+/// 生命周期: route()/setXXX() 配置 -> listen(port) 建套接字 -> run() 阻塞收连接
+/// (每连接投进任务队列, 由 threads_ 个工作线程并发处理) -> stop() 收尾。
+/// 只支持 "Connection: close" 短连接, 不做 HTTPS/chunked/上传/WebSocket —— 够用即止。
 class HttpServer {
  public:
+  /// @brief 路由处理函数类型: 入参是已解析的请求, 返回要发回给客户端的响应。
   using Handler = std::function<HttpResponse(const HttpRequest&)>;
 
   HttpServer() = default;
@@ -130,6 +136,9 @@ class HttpServer {
   int port() const { return port_; }
 
  private:
+  /// @brief 一条已注册的路由: 方法 + 按 "/" 切分的路径模板 + 处理函数。
+  ///
+  /// 路径段里形如 ":code" 的段是占位符, 匹配时把实际值塞进 HttpRequest::params。
   struct Route {
     std::string method;
     std::vector<std::string> segments;  // 按 "/" 切分后的路径段

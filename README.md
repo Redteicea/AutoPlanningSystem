@@ -88,10 +88,14 @@ cmake --build build -j 8
 }
 ```
 
-三种修改方式（优先级从高到低）：
-1. **页面「日历配置」按钮**：校验 → 写入 config.json → 立即按新日历重建算例
-2. **直接编辑文件**后重启服务
-3. 命令行参数 `--orders/--days/--two-shifts`（只对当次启动生效，不回写文件）
+三种修改方式（启动时生效优先级：命令行 > config.json > 内置默认）：
+
+1. **命令行参数**（只对当次启动生效，不回写文件，会盖掉文件里的值）
+   - `--orders N`：本次造多少个订单（不传 = 用 `demo.orders`）
+   - `--days N`：本次排产窗口多少天（不传 = 用 `demo.days`）
+   - `--two-shifts`：在配置日历上再叠一个 18-22 夜班，产能约翻倍（不传 = 完全按配置的班次）
+2. **页面「日历配置」按钮**：校验 → 写入 config.json → 立即按新日历重建算例（运行中即时生效）
+3. **直接编辑 config.json** 后重启服务
 
 运行中也可用 `GET /api/config` 读取、`POST /api/config` 修改（POST 即落盘生效）。
 
@@ -134,7 +138,7 @@ GA 2s 目标值 **6705（优化 29.4%）**，换型时间 2945→2015 分钟。
 │   │   ├── types.hpp         #   Assignment / Solution / KPI (所有求解器的统一输出)
 │   │   ├── ischeduler.hpp    #   求解器统一接口 IScheduler + SolveOptions
 │   │   ├── decoder.hpp       #   插入式解码器 (规则法和 GA 共用同一套"放置"逻辑)
-│   │   ├── rule_scheduler.hpp#   L1: EDD/SPT/WSPT/PRIORITY/FIFO/CR 七条规则取最优
+│   │   ├── rule_scheduler.hpp#   L1: EDD/SPT/WSPT/PRIORITY/FIFO/CR 六条规则取最优
 │   │   ├── ga_scheduler.hpp  #   L2: 遗传算法 (OS+MS 双段编码, 多岛并行)
 │   │   └── validator.hpp     #   独立约束校验器 V1~V6
 │   ├── kpi/metrics.hpp       #   指标计算 (OTD/tardiness/makespan/换型/利用率/WIP)

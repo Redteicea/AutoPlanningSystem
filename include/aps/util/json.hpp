@@ -22,6 +22,12 @@
 namespace aps {
 namespace json {
 
+/// @brief 通用 JSON 值: 六种类型 (null/bool/number/string/array/object) 共用一个类。
+///
+/// 一个 Value 同一时刻只持一种类型 (由 type_ 决定, 其余成员闲置), 用法上像 JS 的变量:
+/// 赋值即改类型, 越界/缺失访问不会抛异常而是返回静态 null (便于 a.b[0].c 链式兜底)。
+/// 数字统一存 double (JSON 本来不区分整型), 导出时整值走 %lld 以免出现 1.000000。
+/// 本类不追求性能极致, 但拷贝是深拷贝、移动是 O(1), 服务层按值传参足够快。
 class Value {
  public:
   enum class Type { Null, Bool, Number, String, Array, Object };
@@ -83,8 +89,8 @@ class Value {
   }
 
   /// @brief 读字符串; 类型不符时返回 def (默认空串)。
-  /// @param def 
-  /// @return 
+  /// @param def 类型不是 String 时返回的兜底值
+  /// @return    字符串内容; 非字符串类型返回 def
   std::string asString(const std::string& def = "") const {
     return type_ == Type::String ? str_ : def;
   }
@@ -185,6 +191,10 @@ inline void appendUtf8(std::string& out, unsigned cp) {
   }
 }
 
+/// @brief 递归下降 JSON 解析器 (内部实现, 不对外暴露)。
+///
+/// 只做一件事: 把一段 JSON 文本变成一个 Value 树, 出错抛 std::runtime_error 并带偏移量。
+/// 状态就是 "文本引用 + 当前下标", 每次调用 run() 从头解析一遍, 不可复用同一个实例解析多段文本。
 class Parser {
  public:
   /// 构造解析器, 持有待解析文本 s 的引用 (调用方需保证其生命周期)。

@@ -30,6 +30,11 @@
 
 namespace aps {
 
+/// @brief REST 接口层: 把上面列出的端点绑到 HttpServer 上, 内部只跟 Repository 打交道。
+///
+/// 职责边界: 只做「解析请求参数 -> 加锁读写 Repository / 调求解器 -> 序列化成 JSON」,
+/// 业务算法一行不写 (全在 engine/ 里), 数据结构也一行不定义 (全在 core/types 里)。
+/// 所以换前端、加端点、改成 gRPC, 都只动这一层。
 class Api {
  public:
   /// 构造 API 处理器, 绑定共享的 Repository (不拥有其生命周期)。

@@ -28,8 +28,8 @@ namespace {
 using Clock = std::chrono::steady_clock;
 
 /// @brief 距计时起点的毫秒数。
-/// @param t0 
-/// @return 
+/// @param t0 计时起点 (steady_clock 时刻)
+/// @return    从 t0 到当前时刻经过的毫秒数 (浮点, 便于直接与预算比较)
 double msSince(Clock::time_point t0) {
   return std::chrono::duration<double, std::milli>(Clock::now() - t0).count();
 }

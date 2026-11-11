@@ -15,7 +15,10 @@
 
 namespace aps {
 
-/// @brief 解选项
+/// @brief 一次求解的通用参数 (时间预算 / 种子 / 线程 / 规则名 / 是否算全量指标)。
+///
+/// 由上层填充后传给 IScheduler::solve; 具体求解器只取自己关心的字段
+/// (规则法看 rule, GA 看 timeLimitMs/seed/threads), 其余字段忽略。
 struct SolveOptions {
   double timeLimitMs = 2000.0;  // 求解时间预算
   std::uint64_t seed = 20261105;

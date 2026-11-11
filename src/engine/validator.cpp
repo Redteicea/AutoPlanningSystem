@@ -16,7 +16,10 @@
 namespace aps {
 namespace {
 
-/// 记录一条违规 (上限 200 条, 防止病态输入把内存撑爆)。
+/// @brief 记录一条违规, 并将结果标记为不可行 (明细上限 200 条, 防病态输入撑爆内存)。
+///
+/// @param v 违规对象 (类型/工序号/描述)
+/// @param r 校验结果, 输出; 标记 ok=false, 超出上限则丢弃本条
 void add(Violation v, ValidationResult& r) {
   r.ok = false;
   if (r.violations.size() < 200) r.violations.push_back(std::move(v));
@@ -24,7 +27,12 @@ void add(Violation v, ValidationResult& r) {
 
 }  // namespace
 
-/// 生成人读摘要; ok 时返回 "OK"。
+/// @brief 生成人读摘要: 通过时返回 "OK", 否则列出前 maxItems 条违规。
+///
+/// 每条格式为 "  - [违规类型] 描述", 超出 maxItems 的部分用 "  ..." 截断。
+///
+/// @param maxItems 最多列出多少条明细 (明细本身在 add() 里已限 200 条)
+/// @return         摘要文本; 校验通过时就是 "OK"
 std::string ValidationResult::summary(size_t maxItems) const {
   if (ok) return "OK";
   std::ostringstream oss;
@@ -36,15 +44,25 @@ std::string ValidationResult::summary(size_t maxItems) const {
   return oss.str();
 }
 
-/// 便捷重载: 校验整个 Solution。
+/// @brief 便捷重载: 直接校验整个 Solution (内部取其 assign 转调下面的实现)。
+///
+/// 只校验工序安排本身, 不校验 KPI 数值是否自洽 —— KPI 由 Metrics 独立计算。
+///
+/// @param p   问题实例 (提供工艺路线、设备能力、日历与交期)
+/// @param sol 待校验的解; 只用到 sol.assign
+/// @return    校验结果; ok=false 时 violations 里是具体违例
 ValidationResult validate(const Problem& p, const Solution& sol) {
   return validate(p, sol.assign);
 }
 
-/// 全量校验 V1~V6 (见头文件列表)。
+/// @brief 全量校验 V1~V6 (与解码器零共享代码, 所以能起到交叉验证的作用)。
+///
+/// 检查顺序: V1 完整性 -> V2 设备能力 -> V6 发布时刻 -> V3 日历 -> V4 同机互斥 -> V5 工艺顺序。
+/// 提前返回不适用于任何一项 —— 六项全部独立跑完, 一次把问题全暴露出来。
+///
 /// @param p      问题实例
-/// @param assign 工序安排表 (下标 = op id)
-/// @return       结果; 违规明细上限 200 条
+/// @param assign 工序安排表 (下标 = op id, 长度须 >= numOps())
+/// @return       结果; 违规明细上限 200 条 (防病态输入撑爆内存)
 ValidationResult validate(const Problem& p, const std::vector<Assignment>& assign) {
   ValidationResult r;
   const int nOps = p.numOps();

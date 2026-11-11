@@ -25,12 +25,23 @@
 
 namespace aps {
 
+/// @brief 一条操作/事件记录 (谁在什么时候对系统做了什么)。
+///
+/// 由 Repository::logEvent 追加, 前端"事件流"面板按时间倒序展示;
+/// 也用于事后追查 (例如某次排产用了什么算法、设备何时停机)。
 struct Event {
   Seconds at = 0;       // 发生时刻 (Unix 秒)
   std::string type;     // 类型 (init/solve/order/insert/breakdown/restore...)
   std::string detail;   // 人类可读详情
 };
 
+/// @brief 服务端唯一的共享状态容器: 当前主数据 + 最近一次排产结果 + 事件流。
+///
+/// 一个 Repository 实例被全部 HTTP 工作线程共享, 因此:
+///   - 读写 problem()/latest()/events() 前必须自己持 mutex() (粗粒度锁, 简单优先);
+///   - 绝不在持锁期间跑求解 (几秒的 GA 会把整站卡死), 正确做法是先拷一份 Problem
+///     算完再持锁 setLatest()。
+/// 内部不接数据库: 数据只在进程内存里, 重启即回到演示算例; 换成 SQLite 时只改本类。
 class Repository {
  public:
   Repository() = default;

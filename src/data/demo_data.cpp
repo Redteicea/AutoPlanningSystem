@@ -23,7 +23,13 @@ struct FamilySpec {
   Seconds sec;
 };
 
-// 在换型矩阵上: 先将同族置 0、跨族填默认 30 分钟, 再用 list 覆盖指定跨族耗时。
+/// @brief 在换型矩阵上铺默认跨族耗时并覆盖指定跨族耗时。
+///
+/// 先将所有同族（i==j）置 0、跨族（i!=j）填默认 30 分钟（1800 秒），再用 list 中
+/// 指定的 from->to 跨族耗时覆盖对应单元格。最终调用 sm.init 重建矩阵。
+///
+/// @param sm    换型矩阵（原地修改，重建为 list 指定的族集合与耗时）
+/// @param list  指定跨族耗时覆盖项（FamilySpec 列表；族不在矩阵中则跳过该项）
 void applyOverrides(SetupMatrix& sm, const std::vector<FamilySpec>& list) {
   std::vector<std::vector<Seconds>> t(static_cast<size_t>(sm.size()),
                                       std::vector<Seconds>(static_cast<size_t>(sm.size()), 0));
@@ -45,11 +51,18 @@ void applyOverrides(SetupMatrix& sm, const std::vector<FamilySpec>& list) {
 
 }  // namespace
 
-// 生成卡片印刷包装车间演示算例: 固定设备组、换型矩阵、3 种产品工艺路线,
-// 再按权重随机生成订单 (含 ~8% 急单)。最后 rebuild + buildCalendars。
-//
-// @param cfg  生成参数 (订单数/窗口天数/种子/夜班)
-// @return     构造好的 Problem
+/// @brief 生成卡片印刷包装车间的演示算例 (固定设备组 + 换型矩阵 + 3 种工艺路线)。
+///
+/// 构成: 6 道工序的工艺链 (印刷 -> 覆膜 -> 模切 -> 分切 -> 检测 -> 包装), 每种工序有
+/// 1~3 台可选设备且单件工时不同 (柔性), 产品分 3 个族, 跨族换型 30 分钟。
+/// 订单按权重随机生成, 约 8% 标记为急单。最后调 rebuild() 展开工序、buildCalendars()
+/// 编译设备日历。
+///
+/// 注意: 订单数量按瓶颈工序 (检测台) 的产能反推校准过, 直接改大 orderCount 会让 OTD 崩掉。
+///
+/// @param cfg 生成参数: 订单数 / 排产窗口天数 / 随机种子 / 是否加夜班 /
+///            可选的自定义日历 (hasCalendar=true 时用 calendar 覆盖内置班次)
+/// @return    构造好的算例 (工序已展开、日历已编译, 可直接求解)
 Problem makeDemoFactory(const DemoConfig& cfg) {
   Problem p;
   p.name = "卡片印刷包装车间 (demo)";
@@ -68,6 +81,7 @@ Problem makeDemoFactory(const DemoConfig& cfg) {
   }
 
   // ---- 设备 ----
+  /// @brief 一台演示设备的静态定义 (编码 / 设备组 / 显示名), 用于成表初始化。
   struct MDef {
     const char* code;
     const char* group;
@@ -203,14 +217,16 @@ Problem makeDemoFactory(const DemoConfig& cfg) {
   return p;
 }
 
-// 生成任意规模合成算例: 单产品、opsPerOrder 道工序 (每序 1~3 台随机设备),
-// 跨族换型默认 20 分钟; 订单数量/交期随机。仅用于性能压测。
-//
-// @param orders       订单数
-// @param opsPerOrder  每订单工序数
-// @param machines     设备数
-// @param seed         随机种子
-// @return             构造好的 Problem
+/// @brief 生成任意规模的合成算例 (性能压测用, 不追求业务真实感)。
+///
+/// 单产品、每单 opsPerOrder 道工序, 每道工序随机挂 1~3 台设备; 跨族换型默认 20 分钟;
+/// 订单数量与交期随机。固定 seed 时算例完全可复现, 所以 bench 不同天的耗时可以直接对比。
+///
+/// @param orders      订单数 (需 > 0)
+/// @param opsPerOrder 每个订单的工序数 (常数, 不像演示算例那样按产品区分)
+/// @param machines    设备总数, 每道工序的候选设备从这里随机挑
+/// @param seed        随机种子; 相同 seed 生成完全相同的算例
+/// @return            构造好的算例 (工序已展开、日历已编译)
 Problem makeSynthetic(int orders, int opsPerOrder, int machines, std::uint64_t seed) {
   Problem p;
   p.name = "synthetic-" + std::to_string(orders) + "x" + std::to_string(opsPerOrder) + "x" +

@@ -22,7 +22,10 @@
 
 namespace aps {
 
-/// @brief 样例配置
+/// @brief 演示算例的生成参数 (规模 + 随机种子 + 日历覆盖)。
+///
+/// 是"要造多大的算例"的描述, 不是排产输入; 由 AppConfig::toDemoConfig() 生成,
+/// 最终喂给 makeDemoFactory()/Repository::initDemo()。同 seed + 同规模 => 完全相同的算例。
 struct DemoConfig {
   int orderCount = 80;       // 订单数量
   int horizonDays = 14;      // 排产窗口天数

@@ -32,8 +32,16 @@ struct Slot {
 
 }  // namespace
 
-/// OS 编码 -> 派工顺序: 订单号第 k 次出现即其第 k 道工序;
-/// 缺失的工序按编号补到末尾, 保证任何 OS 输入都不丢工序。
+/// @brief 把 OS 编码展开成真正的派工顺序 (工序全局下标序列)。
+///
+/// OS 编码里存的是订单号: 某个订单号第 k 次出现, 就代表它的第 k 道工序。
+/// 展开时跳过越界订单号; 展完再扫一遍把没被覆盖的工序补到末尾,
+/// 保证任何被截断或含重复的 OS 输入都不会丢工序 (少一道工序整条工艺链就废了)。
+///
+/// 复杂度 O(numOps), 只在每个 OS 元素上做一次常数操作。
+///
+/// @param os OS 编码, 元素为订单下标, 越界元素被忽略
+/// @return   工序下标数组, 长度恒等于 numOps() (含补齐部分)
 std::vector<int> Decoder::expandOs(const std::vector<int>& os) const {
   const int nOrders = p_.numOrders();
   std::vector<int> used(static_cast<size_t>(nOrders), 0);
@@ -55,16 +63,45 @@ std::vector<int> Decoder::expandOs(const std::vector<int>& os) const {
   return order;
 }
 
-/// OS+MS 双段编码解码入口 (GA 用), 内部展开 OS 后走 decodeSequence。
+/// @brief OS + MS 双段编码的解码入口 (GA 个体走这里)。
+///
+/// 先把 OS 展开成派工顺序, 再转给 decodeSequence 统一处理, tag 固定记 "ga"。
+///
+/// @param os                OS 编码 (订单号序列), 语义见 expandOs
+/// @param ms                MS 编码 (设备选择), 元素为 op.options 的下标;
+///                          可为空, 为空时由 chooseBestMachine 决定设备
+/// @param chooseBestMachine true=每道工序在全部候选设备里挑完工最早的;
+///                          false=按 ms 指定的那一台走 (下标越界会取模回绕)
+/// @param buildAssign       true=回填完整 Assignment + 全量 KPI (要出结果时用);
+///                          false=走快路径只算目标函数 (GA 内循环, 快 3~5 倍)
+/// @return                  解码结果; feasible 恒为 true, 有工序排不进窗口时 truncated=true
 Solution Decoder::decodeOs(const std::vector<int>& os, const std::vector<int>& ms,
                            bool chooseBestMachine, bool buildAssign) const {
   return decodeSequence(expandOs(os), ms, chooseBestMachine, "ga", buildAssign);
 }
 
-/// 派工顺序 -> 时间表 (核心函数)。
-/// 逐工序: 算 ready -> 候选设备找最早可行位置 -> 插入队列。
-/// 结束后顺序自愈 + 按需回填 Assignment / KPI。
-/// 复杂度 O(n x (候选位置扫描 + Timeline 二分)), 已做整数剪枝。
+/// @brief 派工顺序 -> 设备时间表 (整个系统的心脏)。
+///
+/// 按 opOrder 逐道工序处理:
+///   1) ready = max(订单发布时刻, 前道完工时刻), 不早于窗口起点;
+///   2) 在候选设备队列上从队首往后扫, 找第一个"塞得下"的空档并插入
+///      (插入式而非追加队尾, 所以能钻已有排程的空隙);
+///   3) 全部排完后跑一遍"顺序自愈", 兜底消除残留的同机重叠与跨机工艺倒置。
+/// 因此本函数输出的解 100% 可行, 不依赖上层算法是否给出合法编码。
+///
+/// 复杂度 O(工序数 x (候选位置数 + Timeline 二分)), 位置扫描前有整数剪枝
+/// (时钟跨度都不够 setup+dur 的位置直接跳过, 实测省掉约 90% 的解码时间)。
+///
+/// @param opOrder           派工顺序 (工序全局下标); 重复项跳过、越界项忽略,
+///                          缺失的工序不会被排上 (用 expandOs 可保证全覆盖)
+/// @param ms                设备选择编码, 元素为 op.options 下标; 空则表示不指定
+/// @param chooseBestMachine true=每道工序遍历全部候选设备取完工最早者;
+///                          false=只试 ms 指定的那一台
+/// @param tag               写入 Solution::solver 的来源标签 (如 "ga" / "rule:EDD"),
+///                          只用于标识解是哪个算法产出的, 不参与计算
+/// @param buildAssign       true=回填 Assignment 并算全量 KPI (拿最终结果);
+///                          false=快路径, 只算目标函数所需量 (GA 内循环)
+/// @return                  解; 有工序排不进窗口时 truncated=true, 该工序被追加到队尾
 Solution Decoder::decodeSequence(const std::vector<int>& opOrder, const std::vector<int>& ms,
                                  bool chooseBestMachine, const std::string& tag,
                                  bool buildAssign) const {
