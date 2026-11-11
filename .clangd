@@ -1,0 +1,4 @@
+# 如果启用了 clangd 扩展, 让它到 build/ 找 compile_commands.json。
+# (项目默认用 cpptools, clangd.enable=false; 这份配置是给切换过去的场景兜底。)
+CompileFlags:
+  CompilationDatabase: build

@@ -1,0 +1,47 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "windows-release",
+      "displayName": "Windows Release (MinGW-w64 + Ninja, 本机默认)",
+      "description": "不依赖 make / nmake。CMake 在 Windows 上默认会选 NMake 生成器, 那需要 Visual Studio 的 nmake; 这里强制指定 Ninja 并把编译器路径写死, 免得依赖 PATH。换机器时改下面的 toolsDir。",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_MAKE_PROGRAM": "C:/Users/Holo/.workbuddy/tools/mingw64/bin/ninja.exe",
+        "CMAKE_CXX_COMPILER": "C:/Users/Holo/.workbuddy/tools/mingw64/bin/g++.exe",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "windows-debug",
+      "displayName": "Windows Debug (带符号, 便于断点)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_MAKE_PROGRAM": "C:/Users/Holo/.workbuddy/tools/mingw64/bin/ninja.exe",
+        "CMAKE_CXX_COMPILER": "C:/Users/Holo/.workbuddy/tools/mingw64/bin/g++.exe",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "portable",
+      "displayName": "便携预设 (Linux / 已配好 PATH 的环境)",
+      "description": "不写死任何工具链路径, 由环境自己决定 g++ / ninja。换机器或上 Linux 用这个。",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "windows-release", "configurePreset": "windows-release", "jobs": 8 },
+    { "name": "windows-debug", "configurePreset": "windows-debug", "jobs": 8 },
+    { "name": "portable", "configurePreset": "portable", "jobs": 8 }
+  ]
+}

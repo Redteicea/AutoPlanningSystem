@@ -1,0 +1,31 @@
+{
+  "calendar": {
+    "downtime": [],
+    "shifts": [
+      {
+        "end": 12,
+        "start": 8
+      },
+      {
+        "end": 17,
+        "start": 13
+      }
+    ],
+    "workdays": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "demo": {
+    "days": 14,
+    "orders": 80,
+    "seed": 20261105
+  },
+  "solve": {
+    "algo": "ga",
+    "timeLimitMs": 2000
+  }
+}
