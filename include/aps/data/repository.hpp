@@ -105,6 +105,7 @@ class Repository {
 /// @brief Problem 的 JSON 存取 (用于导入/导出算例)
 /// @brief 将 Problem 完整序列化为 JSON (含订单/设备/工艺/换型族/统计)。
 json::Value problemToJson(const Problem& p);
+
 /// @brief 从 JSON 反序列化 Problem; 失败写入 err 并返回 false。
 bool problemFromJson(const json::Value& v, Problem& p, std::string& err);
 

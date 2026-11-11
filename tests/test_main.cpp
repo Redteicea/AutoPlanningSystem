@@ -5,7 +5,7 @@
 //   T2 日历推算 (跨班次/跨天)
 //   T3 手算小算例: 解码结果与人工推演一致
 //   T4 约束校验: 正常解 PASS, 人为破坏后被抓住
-//   T5 规则解 / GA 在演示算例上均可行, 且 GA 不劣于规则解
+//   T5 规则解 / GA / LNS 在演示算例上均可行, 且都不劣于规则解 (LNS 另查编码完整性)
 //   T6 插单: 已开工工序冻结 (开工时间不变)
 //   T7 设备故障: 故障设备上不再有未开工工序
 // ---------------------------------------------------------------------------
@@ -27,6 +27,7 @@
 #include "aps/data/demo_data.hpp"
 #include "aps/engine/decoder.hpp"
 #include "aps/engine/ga_scheduler.hpp"
+#include "aps/engine/lns_scheduler.hpp"
 #include "aps/engine/rule_scheduler.hpp"
 #include "aps/engine/validator.hpp"
 #include "aps/kpi/metrics.hpp"
@@ -221,6 +222,40 @@ static void testSolvers() {
               sRule.kpi.objective, sRule.kpi.otd, sGa.kpi.objective, sGa.kpi.otd,
               sGa.kpi.solveMs);
   CHECK(sGa.kpi.objective <= sRule.kpi.objective * 1.02);  // GA 不应明显劣于规则解
+
+  // ---- LNS: 除了可行性, 还要守住两条"编码完整性"底线 ----
+  // 这两条是 LNS 特有的回归点: 重建阶段一旦插错位置, 解码器的顺序自愈会兜底,
+  // 但兜底的代价是工序被整条推到窗口末尾, 目标值能涨两个数量级 (见 lns_scheduler.cpp
+  // 里 repairOps 的注释)。用显式断言盯住, 比只看目标值可靠。
+  LnsScheduler lns;
+  SolveOptions lo;
+  lo.timeLimitMs = 1200;
+  lo.seed = 7;
+  Solution sLns = lns.solve(p, lo);
+  ValidationResult v3 = validate(p, sLns);
+  CHECK(v3.ok);
+  if (!v3.ok) std::printf("%s\n", v3.summary().c_str());
+  CHECK(!sLns.truncated);
+
+  int missing = 0;
+  for (int i = 0; i < p.numOps(); ++i)
+    if (sLns.assign[static_cast<size_t>(i)].op != i) ++missing;
+  CHECK_EQ(missing, 0);  // 每道工序都必须排上 (order 是完整排列)
+
+  int badSeq = 0;
+  for (int o = 0; o < p.numOrders(); ++o) {
+    const auto& chain = p.orderOps[static_cast<size_t>(o)];
+    for (size_t k = 1; k < chain.size(); ++k) {
+      const Assignment& a = sLns.assign[static_cast<size_t>(chain[k - 1])];
+      const Assignment& b = sLns.assign[static_cast<size_t>(chain[k])];
+      if (a.op >= 0 && b.op >= 0 && b.start < a.end) ++badSeq;
+    }
+  }
+  CHECK_EQ(badSeq, 0);  // 后道不得早于前道完工
+
+  std::printf("       lns  obj=%.3f otd=%.3f (%.0fms)\n", sLns.kpi.objective, sLns.kpi.otd,
+              sLns.kpi.solveMs);
+  CHECK(sLns.kpi.objective <= sRule.kpi.objective * 1.02);
 }
 
 // T6: 急单插队, 校验已开工工序开工时间冻结不变, 且结果仍可行、工序数守恒。

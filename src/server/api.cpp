@@ -12,9 +12,11 @@
 
 #include <algorithm>
 #include <chrono>
+#include <thread>
 
 #include "aps/data/demo_data.hpp"
 #include "aps/engine/ga_scheduler.hpp"
+#include "aps/engine/lns_scheduler.hpp"
 #include "aps/engine/rule_scheduler.hpp"
 #include "aps/engine/validator.hpp"
 #include "aps/reschedule/rescheduler.hpp"
@@ -142,19 +144,36 @@ HttpResponse Api::solve(const HttpRequest& req) {
       sol = rs.solve(copy, opt);
       usedAlgo = sol.solver;
     } else if (algo == "auto") {
+      // 三方取优: 规则解 (毫秒级) 先跑; GA 与 LNS 各用完整预算并行跑 (两者内部已是
+      // 多线程, 18 核吃得下), 因此总耗时约等于单跑一个, 而不是三倍。
       RuleScheduler rs;
       Solution s1 = rs.solve(copy, opt);
-      GaScheduler gs;
-      SolveOptions opt2 = opt;
-      opt2.detailedKpi = true;
-      Solution s2 = gs.solve(copy, opt2);
-      if (s2.kpi.objective <= s1.kpi.objective) {
+
+      Solution s2, s3;
+      std::thread th([&]() {
+        GaScheduler gs;
+        SolveOptions opt2 = opt;
+        opt2.detailedKpi = true;
+        s2 = gs.solve(copy, opt2);
+      });
+      LnsScheduler ls;
+      s3 = ls.solve(copy, opt);
+      th.join();
+
+      sol = std::move(s1);
+      usedAlgo = s1.solver;
+      if (s2.kpi.objective < sol.kpi.objective) {
         sol = std::move(s2);
         usedAlgo = "ga";
-      } else {
-        sol = std::move(s1);
-        usedAlgo = s1.solver;
       }
+      if (s3.kpi.objective < sol.kpi.objective) {
+        sol = std::move(s3);
+        usedAlgo = "lns";
+      }
+    } else if (algo == "lns") {
+      LnsScheduler ls;
+      sol = ls.solve(copy, opt);
+      usedAlgo = "lns";
     } else {
       GaScheduler gs;
       sol = gs.solve(copy, opt);
@@ -402,7 +421,7 @@ HttpResponse Api::events(const HttpRequest&) {
   return HttpResponse::json(v.dump());
 }
 
-// 规模-性能评测: 按 sweep 或指定规模生成合成算例, 对 rule 与 ga 各求解并
+// 规模-性能评测: 按 sweep 或指定规模生成合成算例, 对 rule / ga / lns 各求解并
 // 对比目标值/耗时/OTD, 返回多档明细行 (不读写主数据)。
 HttpResponse Api::benchmark(const HttpRequest& req) {
   bool bodyOk = true;
@@ -428,6 +447,7 @@ HttpResponse Api::benchmark(const HttpRequest& req) {
   json::Value rows = json::Value::array();
   RuleScheduler rs;
   GaScheduler gs;
+  LnsScheduler ls;
 
   for (const auto& c : cases) {
     Problem p = makeSynthetic(c.orders, c.ops, c.machines, seed);
@@ -448,9 +468,17 @@ HttpResponse Api::benchmark(const HttpRequest& req) {
     Solution sGa = gs.solve(p, go);
     double gaMs = msSince(t0);
 
+    SolveOptions lo = go;
+    t0 = Clock::now();
+    Solution sLns = ls.solve(p, lo);
+    double lnsMs = msSince(t0);
+
     double improve = 0.0;
     if (sRule.kpi.objective > 1e-9)
       improve = (sRule.kpi.objective - sGa.kpi.objective) / sRule.kpi.objective;
+    double lnsImprove = 0.0;
+    if (sRule.kpi.objective > 1e-9)
+      lnsImprove = (sRule.kpi.objective - sLns.kpi.objective) / sRule.kpi.objective;
 
     json::Value r = json::Value::object();
     r.set("orders", c.orders);
@@ -466,7 +494,12 @@ HttpResponse Api::benchmark(const HttpRequest& req) {
     r.set("gaOtd", sGa.kpi.otd);
     r.set("gaTardinessHours", static_cast<double>(sGa.kpi.totalTardiness) / 3600.0);
     r.set("gaSetupMinutes", static_cast<double>(sGa.kpi.setupSec) / 60.0);
+    r.set("lnsMs", lnsMs);
+    r.set("lnsObjective", sLns.kpi.objective);
+    r.set("lnsOtd", sLns.kpi.otd);
+    r.set("lnsSetupMinutes", static_cast<double>(sLns.kpi.setupSec) / 60.0);
     r.set("improvement", improve);
+    r.set("lnsImprovement", lnsImprove);
     r.set("evaluations", sGa.kpi.evaluations);
     r.set("opsPerSec", gaMs > 0 ? static_cast<double>(totalOps) * 1000.0 / gaMs : 0.0);
     rows.push(r);

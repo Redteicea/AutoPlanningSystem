@@ -158,7 +158,7 @@ json::Value appConfigToJson(const AppConfig& cfg) {
 ///   - demo.orders     1..100000
 ///   - demo.days       1..366
 ///   - demo.seed       >= 0
-///   - solve.algo      只允许 rule | ga | auto
+///   - solve.algo      只允许 rule | ga | lns | auto
 ///   - solve.timeLimitMs 50..600000
 ///
 /// @param v   JSON 对象 (一般来自请求体或配置文件)
@@ -185,8 +185,8 @@ bool appConfigFromJson(const json::Value& v, AppConfig& out, std::string& err) {
   const json::Value& solve = v["solve"];
   if (solve.isObject()) {
     std::string algo = solve["algo"].asString(c.algo);
-    if (algo != "rule" && algo != "ga" && algo != "auto") {
-      err = "solve.algo 只支持 rule | ga | auto";
+    if (algo != "rule" && algo != "ga" && algo != "lns" && algo != "auto") {
+      err = "solve.algo 只支持 rule | ga | lns | auto";
       return false;
     }
     double t = solve["timeLimitMs"].asDouble(c.timeLimitMs);

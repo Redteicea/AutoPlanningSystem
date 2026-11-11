@@ -541,10 +541,13 @@ function bindActions() {
         <td class="n">${r.machines}</td>
         <td class="n">${fmtNum(r.ruleMs, 1)}</td>
         <td class="n">${fmtNum(r.gaMs, 0)}</td>
+        <td class="n">${fmtNum(r.lnsMs, 0)}</td>
         <td class="n">${fmtNum(r.ruleObjective, 1)}</td>
         <td class="n">${fmtNum(r.gaObjective, 1)}</td>
+        <td class="n">${fmtNum(r.lnsObjective, 1)}</td>
         <td class="n" style="color:${r.improvement >= 0 ? '#0e7d3f' : '#b62c2c'}">${(r.improvement * 100).toFixed(1)}%</td>
-      </tr>`).join('') || '<tr><td colspan="8" class="muted">无数据</td></tr>';
+        <td class="n" style="color:${r.lnsImprovement >= 0 ? '#0e7d3f' : '#b62c2c'}">${(r.lnsImprovement * 100).toFixed(1)}%</td>
+      </tr>`).join('') || '<tr><td colspan="11" class="muted">无数据</td></tr>';
     toast(`基准完成：${(d.rows || []).length} 档规模，${d.cpuThreads} 线程`);
   });
 

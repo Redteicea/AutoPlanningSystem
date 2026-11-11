@@ -272,6 +272,12 @@ Solution Decoder::decodeSequence(const std::vector<int>& opOrder, const std::vec
   //   1) 同机器: 按时间轴重扫, 有重叠就顺延 (只推后, 不提前)
   //   2) 跨机器: 按订单工艺链检查, 后道早于前道就整机顺延; 迭代到稳定
   // 代价是极少数工序晚几分钟, 换来的是"绝不出不可行解"。
+  //
+  // healed 标志有两层用途: 一是让快路径知道 opEnd 已经过期, 必须从队列重新同步
+  // (否则自愈推后的工序在快路径里仍是旧完工时刻, 目标值被系统性低估 ——
+  //  LNS 因此把"假便宜"的解当成最优, 实测 2400 工序会把 2 万的目标值输出成 512 万);
+  // 二是自愈不收敛时输出一句告警, 便于定位"编码质量太差"的调用方。
+  bool healed = false;
   {
     auto relayoutFrom = [&](int m, size_t idx, Seconds earliest) {
       auto& list = queues[static_cast<size_t>(m)];
@@ -290,6 +296,7 @@ Solution Decoder::decodeSequence(const std::vector<int>& opOrder, const std::vec
         list[k].s = cal.rewind(e2, work);
         list[k].e = e2;
         prevEnd = e2;
+        healed = true;
       }
     };
 
@@ -310,7 +317,7 @@ Solution Decoder::decodeSequence(const std::vector<int>& opOrder, const std::vec
     std::vector<int> opM(static_cast<size_t>(nOps), -1);
     std::vector<int> opPos(static_cast<size_t>(nOps), -1);
 
-    for (int pass = 0; pass < 4; ++pass) {
+    for (int pass = 0; pass < 8; ++pass) {
       // relayoutFrom 只改时刻不改位置, 所以位置表只需建一次
       if (pass == 0) {
         for (int m = 0; m < nMach; ++m)
@@ -340,6 +347,22 @@ Solution Decoder::decodeSequence(const std::vector<int>& opOrder, const std::vec
       }
       if (!fixed) break;
     }
+  }
+
+  // 自愈改过 s/e, 快路径依赖的 opEnd / maxEnd / minOcc 必须重新同步。
+  // 不同步的直接后果: 被推后的工序在快路径里仍是旧完工时刻 -> 延期被低估 ->
+  // 目标值"看起来"变好了 -> 求解器一路选中这个假解, 最终 buildAssign 一算就现原形。
+  // 这条 bug 在 GA 上没明显暴露 (GA 的编码接近规则解, 很少触发自愈), 但 LNS 的
+  // 大动作编码会把自愈打满, 实测 2400 工序输出 512 万目标值 (真实应为 2 万)。
+  if (healed) {
+    minOcc = kInf;
+    maxEnd = 0;
+    for (int m = 0; m < nMach; ++m)
+      for (const auto& sl : queues[static_cast<size_t>(m)]) {
+        opEnd[static_cast<size_t>(sl.op)] = sl.e;
+        if (sl.e > maxEnd) maxEnd = sl.e;
+        if (sl.occ < minOcc) minOcc = sl.occ;
+      }
   }
 
   if (buildAssign) {

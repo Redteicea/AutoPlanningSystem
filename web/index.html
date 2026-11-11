@@ -16,9 +16,10 @@
   <div class="summary" id="summary"></div>
   <div class="actions">
     <select id="algo" title="求解算法">
-      <option value="auto">自动(规则+GA取优)</option>
+      <option value="auto">自动(规则+GA+LNS取优)</option>
       <option value="ga" selected>遗传算法 GA</option>
-      <option value="rule">规则法(7条规则取最优)</option>
+      <option value="lns">大邻域搜索 LNS</option>
+      <option value="rule">规则法(6条规则取最优)</option>
     </select>
     <select id="budget" title="求解时间预算">
       <option value="300">300 ms</option>
@@ -89,10 +90,11 @@
       <div class="table-wrap"><table id="benchTable">
         <thead><tr>
           <th class="n">订单</th><th class="n">工序</th><th class="n">设备</th>
-          <th class="n">规则(ms)</th><th class="n">GA(ms)</th>
-          <th class="n">规则目标</th><th class="n">GA目标</th><th class="n">提升</th>
+          <th class="n">规则(ms)</th><th class="n">GA(ms)</th><th class="n">LNS(ms)</th>
+          <th class="n">规则目标</th><th class="n">GA目标</th><th class="n">LNS目标</th>
+          <th class="n">GA提升</th><th class="n">LNS提升</th>
         </tr></thead>
-        <tbody><tr><td colspan="8" class="muted">点「跑性能基准」生成对照数据</td></tr></tbody>
+        <tbody><tr><td colspan="11" class="muted">点「跑性能基准」生成对照数据</td></tr></tbody>
       </table></div>
     </section>
   </div>

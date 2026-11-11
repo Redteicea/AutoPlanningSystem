@@ -44,8 +44,7 @@ struct CalendarSpec {
 };
 
 /// @brief 把"班次 + 工作日 + 停机"编译成一段段**有序不重叠**的可用区间 [first, second)。
-/// 之后所有时间推算 (对齐/前进/回退/容量) 都是二分查找 —— 解码器里没有日期运算,
-/// 只有区间游标, 这是排产能跑到千级工序的关键。
+///        之后所有时间推算 (对齐/前进/回退/容量) 都是二分查找 —— 解码器里没有日期运算,只有区间游标。
 class Timeline {
  public:
   Timeline() = default;
@@ -80,7 +79,7 @@ class Timeline {
   /// @note 复杂度 O(log n + 跨越的时段数), n 为时段数
   Seconds advance(Seconds t, Seconds dur) const;
 
-  /// 从 t 往回推 dur 秒可用产能, 返回真实占用起点。
+  /// @brief 从 t 往回推 dur 秒可用产能, 返回真实占用起点。
   /// 用于"已知完工时刻反推开工时刻"—— 跨班次时绝不能用 `t - dur` 的时钟减法,
   /// 否则起点会落进非工作时段。
   /// @param t   完工时刻

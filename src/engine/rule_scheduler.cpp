@@ -16,12 +16,9 @@
 namespace aps {
 namespace {
 
-/// @brief 计算工序在所有可选设备上的最短加工时长 (供 SPT/CR 等规则打分)。
-///
-/// 取各可选设备 "产量 × 单件秒数" 的最小值; 无可选设备 (options 为空) 时返回 0。
-///
+/// @brief 计算工序在所有可选设备上的最短加工时长 (供 SPT/CR 等规则打分)。 
 /// @param op 工序实例, 含 qty 与 options (加工设备与单件耗时)
-/// @return   最短加工秒数; 无 options 时返回 0
+/// @return   最短加工秒数,取各可选设备 "产量 × 单件秒数" 的最小值; 无 options 时返回 0
 double minDuration(const OpInst& op) {
   double best = 1e18;
   for (const auto& mo : op.options) {

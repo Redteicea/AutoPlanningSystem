@@ -4,7 +4,7 @@
 //   aps_server serve [--port 8080] [--web ./web] [--config config.json]
 //                    [--orders 80] [--days 14] [--two-shifts]
 //   aps_server bench [--time 800] [--seed 20261105]
-//   aps_server solve [--algo ga] [--time 2000] [--orders 80]
+//   aps_server solve [--algo ga|lns|auto|all|rule] [--time 2000] [--orders 80]
 //
 // serve 是主业务: 起 HTTP 服务 + 内置演示算例, 浏览器打开即用。
 // 通用配置 (工作日/班次/算例规模/求解预算) 从 config.json 读写, 详见 data/app_config.hpp。
@@ -14,8 +14,8 @@
 //   - argValue/hasFlag: 解析命令行参数
 //   - printKpi: 格式化打印一组 KPI
 //   - cmdServe: 启动 HTTP 服务 + 后台自动排产
-//   - cmdBench: 多档规模 rule vs ga 性能对比
-//   - cmdSolve: 对演示算例跑规则/GA 并打印 KPI 与校验
+//   - cmdBench: 多档规模 rule / ga / lns 性能对比
+//   - cmdSolve: 对演示算例跑规则/GA/LNS 并打印 KPI 与校验
 //   - main: 按子命令分发
 //
 #include <cstdio>
@@ -32,6 +32,7 @@
 #include "aps/data/demo_data.hpp"
 #include "aps/data/repository.hpp"
 #include "aps/engine/ga_scheduler.hpp"
+#include "aps/engine/lns_scheduler.hpp"
 #include "aps/engine/rule_scheduler.hpp"
 #include "aps/engine/validator.hpp"
 #include "aps/server/api.hpp"
@@ -139,6 +140,9 @@ int cmdServe(int argc, char** argv) {
       if (cfg.algo == "rule") {
         RuleScheduler rs;
         sol = rs.solve(p, opt);
+      } else if (cfg.algo == "lns") {
+        LnsScheduler ls;
+        sol = ls.solve(p, opt);
       } else {
         GaScheduler gs;
         sol = gs.solve(p, opt);
@@ -172,7 +176,7 @@ int cmdServe(int argc, char** argv) {
   return 0;
 }
 
-// bench 子命令: 对多档规模合成算例分别跑 rule 与 ga, 打印耗时/目标值/改进率
+// bench 子命令: 对多档规模合成算例分别跑 rule / ga / lns, 打印耗时/目标值/改进率
 // 与校验结果 (纯命令行, 不依赖 HTTP 服务)。
 int cmdBench(int argc, char** argv) {
   const double tLimit = std::atof(argValue(argc, argv, "--time", "800").c_str());
@@ -185,15 +189,17 @@ int cmdBench(int argc, char** argv) {
   };
   std::vector<Case> cases = {{20, 6, 8}, {50, 6, 10}, {100, 6, 12}, {200, 6, 14}, {400, 6, 16}};
 
-  std::printf("\n=== APS 规模-性能评测 (每档 GA 预算 %.0fms, 线程数 %u) ===\n\n", tLimit,
+  std::printf("\n=== APS 规模-性能评测 (每档 GA/LNS 预算 %.0fms, 线程数 %u) ===\n\n", tLimit,
               std::thread::hardware_concurrency());
-  std::printf("%6s %8s %9s | %10s %10s | %11s %11s %9s %8s\n", "orders", "ops", "machines",
-              "rule(ms)", "ga(ms)", "rule_obj", "ga_obj", "improve", "ga_OTD");
-  std::printf("------------------------------------------------------------------------------"
-              "-----------------\n");
+  std::printf("%6s %7s %8s | %9s %9s %9s | %10s %10s %10s | %7s %7s %6s\n", "orders", "ops",
+              "machines", "rule(ms)", "ga(ms)", "lns(ms)", "rule_obj", "ga_obj", "lns_obj", "ga+",
+              "lns+", "check");
+  std::printf("--------------------------------------------------------------------------------"
+              "------------------------------------------\n");
 
   RuleScheduler rs;
   GaScheduler gs;
+  LnsScheduler ls;
 
   for (const auto& c : cases) {
     Problem p = makeSynthetic(c.orders, c.ops, c.machines, seed);
@@ -208,21 +214,29 @@ int cmdBench(int argc, char** argv) {
     go.seed = seed;
     Solution sGa = gs.solve(p, go);
 
-    ValidationResult vr = validate(p, sGa);
-    double improve = sRule.kpi.objective > 1e-9
-                         ? (sRule.kpi.objective - sGa.kpi.objective) / sRule.kpi.objective
-                         : 0.0;
+    SolveOptions lo = go;
+    Solution sLns = ls.solve(p, lo);
 
-    std::printf("%6d %8d %9d | %10.1f %10.1f | %11.2f %11.2f %8.1f%% %7.1f%%  %s\n",
+    ValidationResult vr = validate(p, sGa);
+    ValidationResult vl = validate(p, sLns);
+    double gaImp = sRule.kpi.objective > 1e-9
+                       ? (sRule.kpi.objective - sGa.kpi.objective) / sRule.kpi.objective
+                       : 0.0;
+    double lnsImp = sRule.kpi.objective > 1e-9
+                        ? (sRule.kpi.objective - sLns.kpi.objective) / sRule.kpi.objective
+                        : 0.0;
+
+    std::printf("%6d %7d %8d | %9.1f %9.1f %9.1f | %10.2f %10.2f %10.2f | %6.1f%% %6.1f%% %s\n",
                 c.orders, p.numOps(), p.numMachines(), sRule.kpi.solveMs, sGa.kpi.solveMs,
-                sRule.kpi.objective, sGa.kpi.objective, improve * 100.0, sGa.kpi.otd * 100.0,
-                vr.ok ? "OK" : "INVALID");
+                sLns.kpi.solveMs, sRule.kpi.objective, sGa.kpi.objective, sLns.kpi.objective,
+                gaImp * 100.0, lnsImp * 100.0, (vr.ok && vl.ok) ? "OK" : "INVALID");
   }
   std::printf("\n");
   return 0;
 }
 
-// solve 子命令: 对演示算例跑规则解, 必要时再跑 GA, 打印 KPI、校验与改进率。
+// solve 子命令: 对演示算例跑规则解, 再按 --algo 跑 GA / LNS, 打印 KPI、校验与改进率。
+// --algo rule 只跑规则; ga / lns 单跑一种; auto 或 all 则 GA + LNS 都跑, 便于三方对照。
 // 算例日历同样来自 config.json (没有则内置默认)。
 int cmdSolve(int argc, char** argv) {
   const std::string algo = argValue(argc, argv, "--algo", "ga");
@@ -247,7 +261,10 @@ int cmdSolve(int argc, char** argv) {
   printKpi("rule", sRule);
   std::printf("           校验: %s\n", v1.summary().c_str());
 
-  if (algo == "ga" || algo == "auto") {
+  const bool wantGa = algo == "ga" || algo == "auto" || algo == "all";
+  const bool wantLns = algo == "lns" || algo == "auto" || algo == "all";
+
+  if (wantGa) {
     GaScheduler gs;
     SolveOptions opt;
     opt.timeLimitMs = tLimit;
@@ -259,6 +276,21 @@ int cmdSolve(int argc, char** argv) {
     if (sRule.kpi.objective > 1e-9) {
       std::printf("           GA 相比规则解改进: %.1f%%\n",
                   (sRule.kpi.objective - sGa.kpi.objective) / sRule.kpi.objective * 100.0);
+    }
+  }
+
+  if (wantLns) {
+    LnsScheduler ls;
+    SolveOptions opt;
+    opt.timeLimitMs = tLimit;
+    opt.seed = 20261105;
+    Solution sLns = ls.solve(p, opt);
+    ValidationResult v3 = validate(p, sLns);
+    printKpi("lns", sLns);
+    std::printf("           校验: %s\n", v3.summary().c_str());
+    if (sRule.kpi.objective > 1e-9) {
+      std::printf("           LNS 相比规则解改进: %.1f%%\n",
+                  (sRule.kpi.objective - sLns.kpi.objective) / sRule.kpi.objective * 100.0);
     }
   }
   std::printf("\n");
@@ -285,7 +317,7 @@ int main(int argc, char** argv) {
   std::printf("  aps_server serve [--port 8080] [--web ./web] [--config config.json]\n");
   std::printf("                    [--orders 80] [--days 14] [--two-shifts]\n");
   std::printf("  aps_server bench [--time 800] [--seed 20261105]\n");
-  std::printf("  aps_server solve [--algo ga|rule|auto] [--time 2000] [--orders 80]\n");
+  std::printf("  aps_server solve [--algo ga|lns|auto|all|rule] [--time 2000] [--orders 80]\n");
   std::printf("\n通用配置 (工作日/班次/订单数/求解预算) 在 config.json, 首次启动自动生成模板,\n");
   std::printf("运行中也可通过 GET/POST /api/config 读写。\n");
   return 1;

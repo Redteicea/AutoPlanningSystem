@@ -43,7 +43,7 @@ struct AppConfig {
   int orderCount = 80;             // 演示算例订单数
   int horizonDays = 14;            // 排产窗口天数
   std::uint64_t seed = 20261105;   // 演示算例随机种子 (保证可复现)
-  std::string algo = "ga";         // 启动自动排产算法: rule | ga
+  std::string algo = "ga";         // 启动自动排产算法: rule | ga | lns | auto
   double timeLimitMs = 2000;       // GA 时间预算 (毫秒)
 };
 

@@ -33,16 +33,14 @@ namespace {
 using Clock = std::chrono::steady_clock;
 
 /// @brief 从计时起点到现在的毫秒数。
-///
-/// 时间预算检查全靠它: 拿返回值直接和 deadlineMs 比较即可, 不用每次手写 duration_cast。
-///
+///        时间预算检查全靠它: 拿返回值直接和 deadlineMs 比较即可, 不用每次手写 duration_cast。
 /// @param t0 计时起点 (由 Clock::now() 取得; steady_clock 不受系统时钟调整影响)
 /// @return    自 t0 起经过的毫秒数 (浮点, 保留小数便于小预算场景精确控制)
 double msSince(Clock::time_point t0) {
   return std::chrono::duration<double, std::milli>(Clock::now() - t0).count();
 }
 
-/// GA 个体: OS 段 (订单序列) + MS 段 (设备选择) + 适应度。
+/// @brief GA 个体: OS 段 (订单序列) + MS 段 (设备选择) + 适应度。
 struct Ind {
   std::vector<int> os;             ///< OS 编码: 订单号序列, 第 k 次出现 = 第 k 道工序
   std::vector<int> ms;             ///< MS 编码: ms[op] = 该工序选第几个可选设备
